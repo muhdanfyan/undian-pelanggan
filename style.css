@@ -183,3 +183,90 @@ pre {
   .btn-spin { font-size:18px; padding:12px 32px; }
   .btn-upload { font-size:12px; padding:9px 14px; }
 }
+
+/* ============================================================
+   LAYAR LOGIN KOORDINATOR
+   ============================================================ */
+.login-screen {
+  position: fixed; inset:0; z-index:60;
+  display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(1200px 800px at 50% -10%, #10204a 0%, #070b16 55%);
+  padding:20px;
+}
+.login-box {
+  width:min(92vw, 420px);
+  background: var(--panel);
+  border:1px solid rgba(0,212,255,.25);
+  border-radius: var(--radius);
+  padding: 32px 28px;
+  box-shadow: 0 0 60px rgba(0,212,255,.12), 0 24px 60px rgba(0,0,0,.6);
+  text-align:center;
+}
+.login-title { font-size: clamp(20px, 4.5vw, 30px); margin-bottom:4px; }
+.login-form {
+  display:flex; flex-direction:column; gap:10px; margin-top:20px; text-align:left;
+}
+.login-form label { font-size:14px; font-weight:700; color:var(--muted); letter-spacing:1px; }
+.login-form select,
+.login-form input {
+  width:100%; padding:13px 14px; font-size:16px; font-weight:600;
+  color:var(--text); background:#05080f;
+  border:1px solid #1c2c4d; border-radius:12px; outline:none;
+  font-family:'Rajdhani', sans-serif;
+}
+.login-form select:focus,
+.login-form input:focus { border-color:var(--neon-blue); box-shadow:0 0 0 3px rgba(0,212,255,.15); }
+.btn-login { margin-top:8px; width:100%; font-size:18px; padding:14px; }
+.login-error {
+  margin-top:6px; padding:10px 12px; font-size:14px; font-weight:700;
+  color:var(--neon-red); background:rgba(255,61,90,.1);
+  border:1px solid rgba(255,61,90,.35); border-radius:10px; text-align:center;
+}
+
+/* ===== USER BAR ===== */
+.user-bar {
+  margin-top:14px; display:flex; align-items:center; justify-content:center; gap:12px;
+}
+.user-chip {
+  padding:7px 18px; border-radius:999px; font-size:14px; font-weight:700;
+  color:var(--neon-green); background:rgba(0,255,157,.08);
+  border:1px solid rgba(0,255,157,.35); letter-spacing:1px;
+}
+.btn-sm { padding:7px 16px; font-size:13px; }
+
+/* ===== AREA PICKER ===== */
+.area-grid {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px;
+  padding:8px 4px;
+}
+.area-card {
+  display:flex; flex-direction:column; gap:6px; align-items:center; justify-content:center;
+  padding:28px 16px; border-radius:16px; cursor:pointer;
+  background:rgba(0,212,255,.06); border:1px solid rgba(0,212,255,.25);
+  color:var(--text); font-family:'Orbitron', sans-serif;
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+}
+.area-card:hover {
+  transform:translateY(-3px);
+  background:rgba(0,212,255,.14);
+  box-shadow: 0 0 26px rgba(0,212,255,.3);
+}
+.area-name { font-size:18px; font-weight:700; letter-spacing:1px; }
+.area-count { font-family:'Rajdhani', sans-serif; font-size:14px; font-weight:600; color:var(--muted); }
+
+/* ===== SPIN PAGE ===== */
+.area-info {
+  display:inline-block; margin-bottom:12px; padding:8px 20px;
+  font-size:16px; font-weight:700; color:var(--neon-yellow);
+  background:rgba(255,209,102,.08); border:1px solid rgba(255,209,102,.3);
+  border-radius:999px; letter-spacing:1px;
+}
+.instruction {
+  margin-top:14px; font-size: clamp(15px, 3vw, 19px); font-weight:700;
+  color:var(--neon-blue); text-shadow: 0 0 12px rgba(0,212,255,.5);
+}
+.counter {
+  margin-top:12px; font-size:15px; font-weight:600; color:var(--muted);
+  background:rgba(13,21,38,.6); border:1px solid rgba(143,163,200,.25);
+  border-radius:999px; padding:8px 16px; display:inline-block;
+}

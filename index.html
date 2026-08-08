@@ -11,70 +11,71 @@
 <body>
 <div class="bg-glow"></div>
 
-<header class="header">
+<!-- ===== LAYAR LOGIN KOORDINATOR ===== -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="badge-merdeka">🇮🇩 10 AGUSTUS 2026</div>
+    <h1 class="title login-title">UNDIAN <span class="neon">INTERNET MERDEKA</span></h1>
+    <p class="subtitle">Login Koordinator — Wilayah Baubau</p>
+
+    <form id="loginForm" class="login-form">
+      <label for="loginUser">Username Koordinator</label>
+      <select id="loginUser" required>
+        <option value="">— Pilih Koordinator —</option>
+        <option value="aldin">ALDIN</option>
+        <option value="munir">MUNIR</option>
+        <option value="nasrun">NASRUN</option>
+      </select>
+
+      <label for="loginPass">Password</label>
+      <input type="password" id="loginPass" placeholder="Masukkan password" required>
+
+      <div class="login-error hidden" id="loginError">⚠️ User atau password salah.</div>
+      <button type="submit" class="btn-spin btn-login">🔐 MASUK</button>
+    </form>
+  </div>
+</div>
+
+<header class="header hidden" id="appHeader">
   <div class="badge-merdeka">🇮🇩 10 AGUSTUS 2026</div>
   <h1 class="title">UNDIAN <span class="neon">INTERNET MERDEKA</span></h1>
-  <p class="subtitle">Gebyar Koneksi Setia — Pelanggan Internet Wilayah Baubau</p>
+  <p class="subtitle" id="headerSub">Gebyar Koneksi Setia — Pelanggan Internet Wilayah Baubau</p>
+  <div class="user-bar">
+    <span class="user-chip" id="userChip">👤 —</span>
+    <button class="btn-ghost btn-sm" id="btnLogout">Keluar</button>
+  </div>
 </header>
 
-<main class="stage" id="stage">
+<main class="stage hidden" id="stage">
 
-  <!-- STEP 1: Pilih Agen -->
-  <section class="panel" id="panel-agen">
-    <div class="step-label">TAHAP 1 — PILIH AGEN</div>
-    <canvas id="canvasAgen" width="560" height="560"></canvas>
-    <div class="pointer"></div>
-    <button class="btn-spin" id="btnSpinAgen">🎡 PUTAR</button>
-    <div class="result-box" id="resultAgen"></div>
+  <!-- STEP 1: Pilih Area (milik koordinator) -->
+  <section class="panel" id="panel-area">
+    <div class="step-label">PILIH AREA KUNJUNGAN</div>
+    <div class="area-grid" id="areaGrid"></div>
   </section>
 
-  <!-- STEP 2: Pilih Area -->
-  <section class="panel hidden" id="panel-area">
-    <div class="step-label">TAHAP 2 — PILIH AREA</div>
-    <canvas id="canvasArea" width="560" height="560"></canvas>
-    <div class="pointer"></div>
-    <button class="btn-spin" id="btnSpinArea">🎡 PUTAR</button>
-    <div class="result-box" id="resultArea"></div>
-  </section>
-
-  <!-- STEP 3: Pemenang -->
-  <section class="panel hidden" id="panel-peserta">
-    <div class="step-label">TAHAP 3 — PELANGGAN BERUNTUNG</div>
+  <!-- STEP 2: Spin Pemenang -->
+  <section class="panel hidden" id="panel-spin">
+    <div class="step-label" id="spinLabel">SPIN UNDIAN</div>
+    <div class="area-info" id="areaInfo"></div>
     <canvas id="canvasPeserta" width="560" height="560"></canvas>
     <div class="pointer"></div>
-    <button class="btn-spin" id="btnSpinPeserta">🎡 PUTAR</button>
+    <p class="instruction" id="spinInstruction">👉 Silakan warga TEKAN tombol di bawah untuk memutar roda undian!</p>
+    <button class="btn-spin" id="btnSpinPeserta">🎡 TEKAN UNTUK PUTAR</button>
     <div class="result-box result-big" id="resultPeserta"></div>
+    <div class="counter" id="counterPeserta"></div>
   </section>
 
   <div class="nav-row hidden" id="navRow">
-    <button class="btn-ghost" id="btnBack">← Kembali</button>
-    <button class="btn-primary" id="btnNew">🔄 Undian Baru</button>
+    <button class="btn-ghost" id="btnBack">← Ganti Area</button>
   </div>
 </main>
 
 <!-- Pemenang Terkumpul -->
-<aside class="winners-panel" id="winnersPanel">
-  <h3>🏆 Pemenang Terkumpul</h3>
+<aside class="winners-panel hidden" id="winnersPanel">
+  <h3>🏆 Pemenang (Sudah Dapat Hadiah)</h3>
   <ol id="winnersList"></ol>
 </aside>
-
-<!-- Modal Upload CSV (Admin) -->
-<button class="btn-upload" id="btnUpload">📥 Upload Data (CSV)</button>
-<div class="modal hidden" id="modalUpload">
-  <div class="modal-box">
-    <h3>Upload Data Peserta</h3>
-    <p class="hint">Format CSV: <code>Agen,Area,Nama</code> — baris pertama opsional header. Contoh:</p>
-    <pre>ALDIN,LIABUKU,ARCELO
-MUNIR,WABOROBO,FATIR
-NASRUN,GONDA BARU,ANDI</pre>
-    <input type="file" id="fileCsv" accept=".csv,text/csv">
-    <div class="modal-actions">
-      <button class="btn-primary" id="btnCsvOk">Muat Data</button>
-      <button class="btn-ghost" id="btnCsvCancel">Batal</button>
-    </div>
-    <div id="csvStatus"></div>
-  </div>
-</div>
 
 <script src="TweenMax.min.js"></script>
 <script src="winwheel.min.js"></script>

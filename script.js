@@ -1,14 +1,25 @@
 /* ============================================================
    UNDIAN INTERNET MERDEKA — 10 AGUSTUS 2026
-   3 Tahap: Agen → Area → Pemenang (Winwheel.js + Web Audio)
+   Login Koordinator → Pilih Area → Warga Tekan Spin
+   Pemenang otomatis dikeluarkan dari putaran berikutnya
    ============================================================ */
+
+/* ---------- KREDENSIAL KOORDINATOR (HARDCODED) ----------
+   Ganti password di sini kalau mau. Format: username -> {nama, pass, agen}
+*/
+const KOORDINATOR = {
+  aldin:  { nama: 'ALDIN',  pass: 'merdeka2026', agen: 'ALDIN' },
+  munir:  { nama: 'MUNIR',  pass: 'merdeka2026', agen: 'MUNIR' },
+  nasrun: { nama: 'NASRUN', pass: 'merdeka2026', agen: 'NASRUN' },
+};
 
 /* ---------- STATE ---------- */
 const state = {
-  agen: null,
-  area: null,
+  user: null,        // username koordinator yang login
+  area: null,        // area yang sedang dikunjungi
+  pool: [],          // nama peserta area yang BELUM dapat hadiah
+  winners: [],       // semua pemenang
   spinning: false,
-  winners: [],
 };
 
 const COLORS = [
@@ -16,16 +27,29 @@ const COLORS = [
   '#ff8a3d', '#3dffd1', '#ff4da6', '#4d79ff', '#a8ff3d',
   '#ff3d3d', '#3dff8a', '#d14dff', '#ffd13d', '#3dd1ff',
 ];
-const NEUTRAL = ['#0d1526', '#14213d'];
 
 const $ = (id) => document.getElementById(id);
-const panels = {
-  agen: $('panel-agen'),
-  area: $('panel-area'),
-  peserta: $('panel-peserta'),
+const els = {
+  loginScreen: $('loginScreen'),
+  appHeader: $('appHeader'),
+  stage: $('stage'),
+  userChip: $('userChip'),
+  headerSub: $('headerSub'),
+  panelArea: $('panel-area'),
+  panelSpin: $('panel-spin'),
+  areaGrid: $('areaGrid'),
+  spinLabel: $('spinLabel'),
+  areaInfo: $('areaInfo'),
+  canvasPeserta: $('canvasPeserta'),
+  btnSpinPeserta: $('btnSpinPeserta'),
+  resultPeserta: $('resultPeserta'),
+  counterPeserta: $('counterPeserta'),
+  navRow: $('navRow'),
+  winnersPanel: $('winnersPanel'),
+  winnersList: $('winnersList'),
 };
 
-/* ---------- AUDIO (Web Audio API — tanpa file) ---------- */
+/* ---------- AUDIO ---------- */
 let audioCtx = null;
 function ensureAudio() {
   if (!audioCtx) {
@@ -76,37 +100,117 @@ function fireConfetti() {
   }
 }
 
-/* ---------- WHEEL BUILDER ---------- */
-function segmentLabel(text, fontSize) {
-  return { text: text, textFontSize: fontSize || 15, textFillStyle: '#ffffff', textFontFamily: 'Rajdhani', textFontWeight: 'bold', textOrientation: 'horizontal', textAlignment: 'center' };
+/* ---------- LOGIN ---------- */
+$('loginForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const user = $('loginUser').value;
+  const pass = $('loginPass').value;
+  const k = KOORDINATOR[user];
+  if (k && k.pass === pass) {
+    state.user = user;
+    $('loginError').classList.add('hidden');
+    enterApp(k);
+  } else {
+    $('loginError').classList.remove('hidden');
+  }
+});
+
+$('btnLogout').addEventListener('click', () => {
+  state.user = null; state.area = null; state.pool = []; state.winners = [];
+  els.winnersList.innerHTML = '';
+  els.loginScreen.classList.remove('hidden');
+  els.appHeader.classList.add('hidden');
+  els.stage.classList.add('hidden');
+  els.winnersPanel.classList.add('hidden');
+  $('loginPass').value = '';
+  $('loginUser').value = '';
+  $('loginError').classList.add('hidden');
+});
+
+function enterApp(k) {
+  els.loginScreen.classList.add('hidden');
+  els.appHeader.classList.remove('hidden');
+  els.stage.classList.remove('hidden');
+  els.winnersPanel.classList.remove('hidden');
+  els.userChip.textContent = '👤 Koordinator: ' + k.nama;
+  els.headerSub.textContent = 'Gebyar Koneksi Setia — Wilayah ' + k.nama + ' · Internet Merdeka';
+  renderAreaPicker();
 }
 
-let wheelIdCounter = 0;
-const wheelCallbacks = {};
-function buildWheel(canvasId, items, onFinish) {
-  const count = items.length;
-  const segs = items.map((label, i) => ({
+/* ---------- AREA PICKER ---------- */
+function renderAreaPicker() {
+  const k = KOORDINATOR[state.user];
+  const agenData = DATA_PESERTA[k.agen] || {};
+  const areas = Object.keys(agenData);
+  els.areaGrid.innerHTML = '';
+  areas.forEach((area) => {
+    const btn = document.createElement('button');
+    btn.className = 'area-card';
+    btn.innerHTML = `<span class="area-name">${area}</span><span class="area-count">${agenData[area].length} warga</span>`;
+    btn.addEventListener('click', () => selectArea(area, agenData[area]));
+    els.areaGrid.appendChild(btn);
+  });
+  showPanel('area');
+}
+
+function selectArea(area, names) {
+  state.area = area;
+  state.pool = [...names];          // salin nama — belum ada yang menang
+  els.areaInfo.textContent = `📍 ${area} — ${state.pool.length} warga siap undian`;
+  els.spinLabel.textContent = 'SPIN UNDIAN — ' + area;
+  initWheel();
+  showPanel('spin');
+}
+
+/* ---------- WHEEL ---------- */
+let wheel = null;
+let wheelCbId = null;
+
+function initWheel() {
+  const names = state.pool;
+  clearResult();
+  if (!names.length) {
+    els.resultPeserta.textContent = '✅ Semua warga sudah dapat hadiah!';
+    els.btnSpinPeserta.disabled = true;
+    updateCounter();
+    return;
+  }
+  // Font sesuai jumlah segmen
+  const fs = names.length > 80 ? 11 : names.length > 40 ? 13 : names.length > 20 ? 15 : 17;
+  const segs = names.map((label, i) => ({
     fillStyle: COLORS[i % COLORS.length],
-    ...segmentLabel(String(label)),
+    text: String(label),
+    textFontSize: fs,
+    textFillStyle: '#ffffff',
+    textFontFamily: 'Rajdhani',
+    textFontWeight: 'bold',
+    textOrientation: 'horizontal',
+    textAlignment: 'center',
   }));
 
-  // Winwheel versi npm memanggil callback via eval() — harus STRING,
-  // bukan fungsi (eval(fungsi) hanya mengembalikan, tidak mengeksekusi).
-  const id = 'wheelCb' + (++wheelIdCounter);
-  wheelCallbacks[id] = onFinish;
-  window[id] = function () {
-    const cb = wheelCallbacks[id];
-    if (cb) cb();
+  wheelCbId = 'wheelCb' + Date.now();
+  window[wheelCbId] = function () {
+    stopTicking();
+    const seg = wheel.getIndicatedSegment();
+    const winner = seg ? seg.text : null;
+    if (!winner) return;
+    els.resultPeserta.textContent = '🏆 ' + winner;
+    els.resultPeserta.classList.add('win');
+    playFanfare(); fireConfetti();
+    // HAPUS pemenang dari pool — tidak muncul lagi di putaran berikutnya
+    state.pool = state.pool.filter(n => n !== winner);
+    addWinner(winner);
+    updateCounter();
+    els.btnSpinPeserta.disabled = false;
+    state.spinning = false;
   };
 
-  return new Winwheel({
-    canvasId,
-    numSegments: count,
+  wheel = new Winwheel({
+    canvasId: 'canvasPeserta',
+    numSegments: names.length,
     outerRadius: 258,
     centerX: 280,
     centerY: 280,
-    textFontSize: 16,
-    textFillStyle: '#ffffff',
     strokeStyle: '#0d1526',
     lineWidth: 2,
     segments: segs,
@@ -114,13 +218,16 @@ function buildWheel(canvasId, items, onFinish) {
       type: 'spinToStop',
       duration: 6,
       spins: 7 + Math.floor(Math.random() * 5),
-      callbackFinished: id + '()',
+      callbackFinished: wheelCbId + '()',
     },
-    pointerAngle: 90, // pointer di atas (12 jam)
+    pointerAngle: 90,
   });
+  wheel.draw();
+  els.btnSpinPeserta.disabled = false;
+  updateCounter();
 }
 
-function spinWheel(wheel) {
+function spinWheel() {
   ensureAudio();
   wheel.stopAnimation(false);
   wheel.animation.spins = 7 + Math.floor(Math.random() * 6);
@@ -130,187 +237,41 @@ function spinWheel(wheel) {
   wheel.startAnimation();
 }
 
-function indicatedSegment(wheel) {
-  // Pointer di atas = 12 jam (rotationAngle 0 di atas, pointerAngle 90)
-  const seg = wheel.getIndicatedSegment();
-  return seg ? seg.text : null;
-}
+els.btnSpinPeserta.addEventListener('click', () => {
+  if (state.spinning || !wheel || !state.pool.length) return;
+  state.spinning = true;
+  els.btnSpinPeserta.disabled = true;
+  clearResult();
+  spinWheel();
+});
 
-/* ---------- SHOW / HIDE ---------- */
+/* ---------- HELPERS ---------- */
 function showPanel(name) {
-  Object.keys(panels).forEach(k => panels[k].classList.add('hidden'));
-  panels[name].classList.remove('hidden');
-  $('navRow').classList.toggle('hidden', name === 'agen');
+  els.panelArea.classList.toggle('hidden', name !== 'area');
+  els.panelSpin.classList.toggle('hidden', name !== 'spin');
+  els.navRow.classList.toggle('hidden', name !== 'spin');
 }
-function clearResult(id) {
-  const el = $(id);
-  el.textContent = '';
-  el.classList.remove('win');
+function clearResult() {
+  els.resultPeserta.textContent = '';
+  els.resultPeserta.classList.remove('win');
 }
-
-/* ---------- TAHAP 1: AGEN ---------- */
-let wheelAgen = null;
-function initAgen() {
-  clearResult('resultAgen');
-  const agenNames = Object.keys(DATA_PESERTA);
-  wheelAgen = buildWheel('canvasAgen', agenNames, () => {
-    stopTicking();
-    const agen = indicatedSegment(wheelAgen);
-    state.agen = agen;
-    const el = $('resultAgen');
-    el.textContent = '✅ Agen terpilih: ' + agen;
-    el.classList.add('win');
-    playFanfare(); fireConfetti();
-    setTimeout(() => { initArea(); showPanel('area'); }, 1200);
-  });
-  wheelAgen.draw();
-  $('btnSpinAgen').disabled = false;
+function updateCounter() {
+  const sisa = state.pool.length;
+  const total = (DATA_PESERTA[KOORDINATOR[state.user].agen][state.area] || []).length;
+  els.counterPeserta.textContent = `Belum dapat hadiah: ${sisa} dari ${total} warga`;
 }
-
-$('btnSpinAgen').addEventListener('click', () => {
-  if (state.spinning || !wheelAgen) return;
-  state.spinning = true;
-  $('btnSpinAgen').disabled = true;
-  clearResult('resultAgen');
-  spinWheel(wheelAgen);
-});
-
-/* ---------- TAHAP 2: AREA ---------- */
-let wheelArea = null;
-function initArea() {
-  clearResult('resultArea');
-  $('resultArea').textContent = 'Area dari agen: ' + state.agen;
-  const areas = Object.keys(DATA_PESERTA[state.agen] || {});
-  if (!areas.length) return;
-  wheelArea = buildWheel('canvasArea', areas, () => {
-    stopTicking();
-    state.area = indicatedSegment(wheelArea);
-    const el = $('resultArea');
-    el.textContent = '✅ Area terpilih: ' + state.area;
-    el.classList.add('win');
-    playFanfare(); fireConfetti();
-    setTimeout(() => { initPeserta(); showPanel('peserta'); }, 1200);
-  });
-  wheelArea.draw();
-  $('btnSpinArea').disabled = false;
-}
-
-$('btnSpinArea').addEventListener('click', () => {
-  if (state.spinning || !wheelArea) return;
-  state.spinning = true;
-  $('btnSpinArea').disabled = true;
-  clearResult('resultArea');
-  spinWheel(wheelArea);
-});
-
-/* ---------- TAHAP 3: PESERTA ---------- */
-let wheelPeserta = null;
-function initPeserta() {
-  clearResult('resultPeserta');
-  const names = DATA_PESERTA[state.agen][state.area] || [];
-  $('resultPeserta').textContent = names.length + ' pelanggan siap diputar…';
-  // Roda besar: jika > 40 nama, kecilkan font
-  const fs = names.length > 80 ? 11 : names.length > 40 ? 13 : 16;
-  wheelPeserta = buildWheel('canvasPeserta', names, () => {
-    stopTicking();
-    const winner = indicatedSegment(wheelPeserta);
-    const el = $('resultPeserta');
-    el.textContent = '🏆 ' + winner;
-    el.classList.add('win');
-    playFanfare(); fireConfetti();
-    addWinner(winner);
-    $('btnSpinPeserta').disabled = false;
-    state.spinning = false;
-  });
-  wheelPeserta.textFontSize = fs;
-  wheelPeserta.draw();
-  $('btnSpinPeserta').disabled = false;
-}
-
-$('btnSpinPeserta').addEventListener('click', () => {
-  if (state.spinning || !wheelPeserta) return;
-  state.spinning = true;
-  $('btnSpinPeserta').disabled = true;
-  clearResult('resultPeserta');
-  spinWheel(wheelPeserta);
-});
-
-/* ---------- WINNERS LIST ---------- */
 function addWinner(name) {
-  state.winners.push({ name, agen: state.agen, area: state.area });
+  const k = KOORDINATOR[state.user];
+  state.winners.push({ name, agen: k.agen, area: state.area });
   const li = document.createElement('li');
-  li.innerHTML = `${name} <span class="area">— ${state.agen} / ${state.area}</span>`;
-  $('winnersList').appendChild(li);
+  li.innerHTML = `${name} <span class="area">— ${k.agen} / ${state.area}</span>`;
+  els.winnersList.appendChild(li);
 }
 
-/* ---------- NAVIGATION ---------- */
-$('btnBack').addEventListener('click', () => {
+els.btnBack.addEventListener('click', () => {
   if (state.spinning) return;
-  if (!panels.peserta.classList.contains('hidden')) {
-    showPanel('area');
-  } else if (!panels.area.classList.contains('hidden')) {
-    showPanel('agen');
-  }
+  renderAreaPicker();
 });
 
-$('btnNew').addEventListener('click', () => {
-  if (state.spinning) return;
-  state.agen = null; state.area = null;
-  wheelAgen = null; wheelArea = null; wheelPeserta = null;
-  initAgen();
-  showPanel('agen');
-});
-
-/* ---------- UPLOAD CSV ---------- */
-$('btnUpload').addEventListener('click', () => {
-  $('modalUpload').classList.remove('hidden');
-  $('csvStatus').textContent = '';
-});
-$('btnCsvCancel').addEventListener('click', () => $('modalUpload').classList.add('hidden'));
-
-$('btnCsvOk').addEventListener('click', () => {
-  const file = $('fileCsv').files[0];
-  if (!file) { $('csvStatus').textContent = '⚠️ Pilih file CSV dulu.'; return; }
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const parsed = parseCsv(e.target.result);
-      if (!Object.keys(parsed).length) throw new Error('Data kosong');
-      window.DATA_PESERTA = parsed;
-      $('csvStatus').textContent = '✅ ' + countTotal(parsed) + ' peserta dimuat dari CSV.';
-      $('modalUpload').classList.add('hidden');
-      // Reset ke tahap 1 dengan data baru
-      state.agen = null; state.area = null;
-      wheelAgen = null; wheelArea = null; wheelPeserta = null;
-      initAgen();
-      showPanel('agen');
-    } catch (err) {
-      $('csvStatus').textContent = '❌ Gagal: ' + err.message;
-    }
-  };
-  reader.readAsText(file);
-});
-
-function parseCsv(text) {
-  const data = {};
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  lines.forEach((line, idx) => {
-    if (idx === 0 && /agen/i.test(line) && /area/i.test(line) && /nama/i.test(line)) return; // header
-    const parts = line.split(',').map(p => p.trim());
-    if (parts.length < 3) return;
-    const [agen, area, name] = parts;
-    if (!name) return;
-    if (!data[agen]) data[agen] = {};
-    if (!data[agen][area]) data[agen][area] = [];
-    data[agen][area].push(name);
-  });
-  return data;
-}
-function countTotal(data) {
-  let n = 0;
-  Object.values(data).forEach(a => Object.values(a).forEach(names => n += names.length));
-  return n;
-}
-
-/* ---------- INIT ---------- */
-initAgen();
+/* ---------- INIT: tampilkan login ---------- */
+// Tidak ada init otomatis — semua dimulai dari login screen.
