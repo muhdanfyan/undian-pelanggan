@@ -1,24 +1,35 @@
 /* ============================================================
    UNDIAN INTERNET MERDEKA — 10 AGUSTUS 2026
-   Login Koordinator → Pilih Area → Warga Tekan Spin
-   Pemenang otomatis dikeluarkan dari putaran berikutnya
+   Login Koordinator → Pilih Area → Pilih Warga → Spin HADIAH
+   Tabel pemaparan: siapa sudah/belum spin + hadiah apa
    ============================================================ */
 
-/* ---------- KREDENSIAL KOORDINATOR (HARDCODED) ----------
-   Ganti password di sini kalau mau. Format: username -> {nama, pass, agen}
-*/
+/* ---------- KREDENSIAL KOORDINATOR (HARDCODED) ---------- */
 const KOORDINATOR = {
   aldin:  { nama: 'ALDIN',  pass: 'merdeka2026', agen: 'ALDIN' },
   munir:  { nama: 'MUNIR',  pass: 'merdeka2026', agen: 'MUNIR' },
   nasrun: { nama: 'NASRUN', pass: 'merdeka2026', agen: 'NASRUN' },
 };
 
+/* ---------- DAFTAR HADIAH (total 62 unit) ---------- */
+const PRIZE_TOTAL = 62;
+const PRIZES = [
+  { name: 'Sepeda Listrik', qty: 1 },
+  { name: 'Rice Cooker', qty: 3 },
+  { name: 'Blender', qty: 3 },
+  { name: 'Setrika', qty: 6 },
+  { name: 'Kipas Angin Mini', qty: 10 },
+  { name: 'Jam Dinding', qty: 12 },
+  { name: 'Baju Kaos', qty: 12 },
+  { name: 'Gelas Mugs', qty: 15 },
+];
+
 /* ---------- STATE ---------- */
 const state = {
   user: null,        // username koordinator yang login
   area: null,        // area yang sedang dikunjungi
-  pool: [],          // nama peserta area yang BELUM dapat hadiah
-  winners: [],       // semua pemenang
+  activeWarga: null, // warga yang sedang spin
+  sudah: {},         // { agen: { area: [ {warga, hadiah} ] } } — sudah spin
   spinning: false,
 };
 
@@ -40,13 +51,17 @@ const els = {
   areaGrid: $('areaGrid'),
   spinLabel: $('spinLabel'),
   areaInfo: $('areaInfo'),
+  wargaSelect: $('wargaSelect'),
+  btnPickWarga: $('btnPickWarga'),
+  wargaActive: $('wargaActive'),
+  wargaName: $('wargaName'),
   canvasPeserta: $('canvasPeserta'),
   btnSpinPeserta: $('btnSpinPeserta'),
   resultPeserta: $('resultPeserta'),
   counterPeserta: $('counterPeserta'),
   navRow: $('navRow'),
-  winnersPanel: $('winnersPanel'),
-  winnersList: $('winnersList'),
+  btnBack: $('btnBack'),
+  btnTable: $('btnTable'),
 };
 
 /* ---------- AUDIO ---------- */
@@ -116,12 +131,12 @@ $('loginForm').addEventListener('submit', (e) => {
 });
 
 $('btnLogout').addEventListener('click', () => {
-  state.user = null; state.area = null; state.pool = []; state.winners = [];
-  els.winnersList.innerHTML = '';
+  state.user = null; state.area = null; state.activeWarga = null;
+  state.sudah = {};
   els.loginScreen.classList.remove('hidden');
   els.appHeader.classList.add('hidden');
   els.stage.classList.add('hidden');
-  els.winnersPanel.classList.add('hidden');
+  $('modalTable').classList.add('hidden');
   $('loginPass').value = '';
   $('loginUser').value = '';
   $('loginError').classList.add('hidden');
@@ -131,7 +146,6 @@ function enterApp(k) {
   els.loginScreen.classList.add('hidden');
   els.appHeader.classList.remove('hidden');
   els.stage.classList.remove('hidden');
-  els.winnersPanel.classList.remove('hidden');
   els.userChip.textContent = '👤 Koordinator: ' + k.nama;
   els.headerSub.textContent = 'Gebyar Koneksi Setia — Wilayah ' + k.nama + ' · Internet Merdeka';
   renderAreaPicker();
@@ -144,42 +158,89 @@ function renderAreaPicker() {
   const areas = Object.keys(agenData);
   els.areaGrid.innerHTML = '';
   areas.forEach((area) => {
+    const sudahCount = getSudahCount(k.agen, area);
     const btn = document.createElement('button');
     btn.className = 'area-card';
-    btn.innerHTML = `<span class="area-name">${area}</span><span class="area-count">${agenData[area].length} warga</span>`;
-    btn.addEventListener('click', () => selectArea(area, agenData[area]));
+    btn.innerHTML = `<span class="area-name">${area}</span><span class="area-count">${agenData[area].length} warga · ${sudahCount} sudah spin</span>`;
+    btn.addEventListener('click', () => selectArea(area));
     els.areaGrid.appendChild(btn);
   });
   showPanel('area');
 }
 
-function selectArea(area, names) {
+function getSudahCount(agen, area) {
+  return (state.sudah[agen] && state.sudah[agen][area] || []).length;
+}
+function getSudahList(agen, area) {
+  return (state.sudah[agen] && state.sudah[agen][area]) || [];
+}
+function getBelumList(agen, area) {
+  const semua = DATA_PESERTA[agen][area] || [];
+  const sudahSet = new Set(getSudahList(agen, area).map(x => x.warga));
+  return semua.filter(n => !sudahSet.has(n));
+}
+
+function selectArea(area) {
   state.area = area;
-  state.pool = [...names];          // salin nama — belum ada yang menang
-  els.areaInfo.textContent = `📍 ${area} — ${state.pool.length} warga siap undian`;
+  state.activeWarga = null;
+  els.areaInfo.textContent = `📍 ${area}`;
   els.spinLabel.textContent = 'SPIN UNDIAN — ' + area;
+  renderWargaPicker();
   initWheel();
   showPanel('spin');
 }
 
-/* ---------- WHEEL ---------- */
+/* ---------- WARGA PICKER ---------- */
+function renderWargaPicker() {
+  const k = KOORDINATOR[state.user];
+  const belum = getBelumList(k.agen, state.area);
+  const sel = els.wargaSelect;
+  sel.innerHTML = '';
+  const opt = document.createElement('option');
+  opt.value = ''; opt.textContent = belum.length ? '— Pilih nama warga —' : '— Semua warga sudah spin! —';
+  sel.appendChild(opt);
+  belum.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    sel.appendChild(o);
+  });
+  els.wargaActive.classList.add('hidden');
+  els.btnPickWarga.disabled = !belum.length;
+  updateCounter();
+}
+
+els.btnPickWarga.addEventListener('click', () => {
+  const nama = els.wargaSelect.value;
+  if (!nama) return;
+  state.activeWarga = nama;
+  els.wargaName.textContent = nama;
+  els.wargaActive.classList.remove('hidden');
+  els.resultPeserta.textContent = '';
+  els.resultPeserta.classList.remove('win');
+  els.btnSpinPeserta.disabled = false;
+});
+
+/* ---------- WHEEL (HADIAH) ---------- */
 let wheel = null;
 let wheelCbId = null;
 
+function getAvailablePrizes() {
+  return PRIZES.filter(p => p.qty > 0);
+}
+
 function initWheel() {
-  const names = state.pool;
+  const prizes = getAvailablePrizes();
   clearResult();
-  if (!names.length) {
-    els.resultPeserta.textContent = '✅ Semua warga sudah dapat hadiah!';
+  if (!prizes.length) {
+    els.resultPeserta.textContent = '✅ Semua hadiah sudah habis!';
     els.btnSpinPeserta.disabled = true;
     updateCounter();
     return;
   }
-  // Font sesuai jumlah segmen
-  const fs = names.length > 80 ? 11 : names.length > 40 ? 13 : names.length > 20 ? 15 : 17;
-  const segs = names.map((label, i) => ({
+  const fs = prizes.length > 12 ? 12 : prizes.length > 8 ? 14 : 17;
+  const segs = prizes.map((p, i) => ({
     fillStyle: COLORS[i % COLORS.length],
-    text: String(label),
+    text: p.name,
     textFontSize: fs,
     textFillStyle: '#ffffff',
     textFontFamily: 'Rajdhani',
@@ -192,22 +253,28 @@ function initWheel() {
   window[wheelCbId] = function () {
     stopTicking();
     const seg = wheel.getIndicatedSegment();
-    const winner = seg ? seg.text : null;
-    if (!winner) return;
-    els.resultPeserta.textContent = '🏆 ' + winner;
+    const prizeName = seg ? seg.text : null;
+    if (!prizeName) return;
+    const prize = PRIZES.find(p => p.name === prizeName);
+    if (prize) {
+      prize.qty--;   // kurangi stok hadiah
+      recordWinner(prizeName);
+    }
+    els.resultPeserta.textContent = '🎁 ' + prizeName;
     els.resultPeserta.classList.add('win');
     playFanfare(); fireConfetti();
-    // HAPUS pemenang dari pool — tidak muncul lagi di putaran berikutnya
-    state.pool = state.pool.filter(n => n !== winner);
-    addWinner(winner);
+    state.activeWarga = null;
+    els.wargaActive.classList.add('hidden');
     updateCounter();
+    initWheel();   // rebuild roda — hadiah habis tidak muncul lagi
+    renderWargaPicker();
     els.btnSpinPeserta.disabled = false;
     state.spinning = false;
   };
 
   wheel = new Winwheel({
     canvasId: 'canvasPeserta',
-    numSegments: names.length,
+    numSegments: prizes.length,
     outerRadius: 258,
     centerX: 280,
     centerY: 280,
@@ -223,8 +290,14 @@ function initWheel() {
     pointerAngle: 90,
   });
   wheel.draw();
-  els.btnSpinPeserta.disabled = false;
   updateCounter();
+}
+
+function recordWinner(prizeName) {
+  const k = KOORDINATOR[state.user];
+  if (!state.sudah[k.agen]) state.sudah[k.agen] = {};
+  if (!state.sudah[k.agen][state.area]) state.sudah[k.agen][state.area] = [];
+  state.sudah[k.agen][state.area].push({ warga: state.activeWarga, hadiah: prizeName });
 }
 
 function spinWheel() {
@@ -238,7 +311,7 @@ function spinWheel() {
 }
 
 els.btnSpinPeserta.addEventListener('click', () => {
-  if (state.spinning || !wheel || !state.pool.length) return;
+  if (state.spinning || !wheel || !state.activeWarga) return;
   state.spinning = true;
   els.btnSpinPeserta.disabled = true;
   clearResult();
@@ -256,16 +329,10 @@ function clearResult() {
   els.resultPeserta.classList.remove('win');
 }
 function updateCounter() {
-  const sisa = state.pool.length;
-  const total = (DATA_PESERTA[KOORDINATOR[state.user].agen][state.area] || []).length;
-  els.counterPeserta.textContent = `Belum dapat hadiah: ${sisa} dari ${total} warga`;
-}
-function addWinner(name) {
   const k = KOORDINATOR[state.user];
-  state.winners.push({ name, agen: k.agen, area: state.area });
-  const li = document.createElement('li');
-  li.innerHTML = `${name} <span class="area">— ${k.agen} / ${state.area}</span>`;
-  els.winnersList.appendChild(li);
+  const belum = getBelumList(k.agen, state.area);
+  const totalPrizes = PRIZES.reduce((a, p) => a + p.qty, 0);
+  els.counterPeserta.textContent = `Belum spin: ${belum.length} warga · Hadiah tersisa: ${totalPrizes} dari ${PRIZE_TOTAL} unit`;
 }
 
 els.btnBack.addEventListener('click', () => {
@@ -273,5 +340,48 @@ els.btnBack.addEventListener('click', () => {
   renderAreaPicker();
 });
 
+/* ---------- TABEL PEMAPARAN ---------- */
+els.btnTable.addEventListener('click', () => {
+  renderTable('area');
+  $('modalTable').classList.remove('hidden');
+});
+$('btnTableArea').addEventListener('click', () => renderTable('area'));
+$('btnTableAll').addEventListener('click', () => renderTable('all'));
+$('btnTableClose').addEventListener('click', () => $('modalTable').classList.add('hidden'));
+
+function renderTable(mode) {
+  const k = KOORDINATOR[state.user];
+  const wrap = $('tableWrap');
+  let html = '';
+  if (mode === 'area') {
+    html = buildTable(k.agen, state.area);
+  } else {
+    const agenData = DATA_PESERTA[k.agen] || {};
+    Object.keys(agenData).forEach(area => {
+      html += `<h4 class="table-area-title">📍 ${area}</h4>` + buildTable(k.agen, area);
+    });
+  }
+  wrap.innerHTML = html || '<p class="hint">Belum ada data.</p>';
+}
+
+function buildTable(agen, area) {
+  const semua = DATA_PESERTA[agen][area] || [];
+  const sudah = getSudahList(agen, area);
+  const sudahMap = {};
+  sudah.forEach(s => { sudahMap[s.warga] = s.hadiah; });
+  let rows = '';
+  semua.forEach(n => {
+    const h = sudahMap[n];
+    rows += `<tr class="${h ? 'row-done' : 'row-pending'}">
+      <td>${n}</td>
+      <td>${h ? '✅ Sudah' : '⏳ Belum'}</td>
+      <td>${h || '—'}</td>
+    </tr>`;
+  });
+  return `<div class="table-wrap-inner"><table class="table-papar">
+    <thead><tr><th>Warga</th><th>Status</th><th>Hadiah</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
 /* ---------- INIT: tampilkan login ---------- */
-// Tidak ada init otomatis — semua dimulai dari login screen.

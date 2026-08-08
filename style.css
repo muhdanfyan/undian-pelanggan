@@ -255,6 +255,24 @@ pre {
 .area-count { font-family:'Rajdhani', sans-serif; font-size:14px; font-weight:600; color:var(--muted); }
 
 /* ===== SPIN PAGE ===== */
+.warga-picker {
+  display:flex; flex-direction:column; gap:8px; align-items:center;
+  margin-bottom:14px; padding:14px; border-radius:14px;
+  background:rgba(0,255,157,.05); border:1px solid rgba(0,255,157,.2);
+}
+.warga-picker label { font-size:14px; font-weight:700; color:var(--muted); }
+.warga-picker select {
+  width:100%; max-width:360px; padding:11px 12px; font-size:16px; font-weight:600;
+  color:var(--text); background:#05080f; border:1px solid #1c2c4d; border-radius:10px;
+  font-family:'Rajdhani', sans-serif;
+}
+.warga-active {
+  margin-bottom:12px; padding:10px 20px; font-size:18px; font-weight:700;
+  color:var(--neon-green); background:rgba(0,255,157,.1);
+  border:1px solid rgba(0,255,157,.4); border-radius:999px; display:inline-block;
+}
+.warga-active.hidden { display:none; }
+
 .area-info {
   display:inline-block; margin-bottom:12px; padding:8px 20px;
   font-size:16px; font-weight:700; color:var(--neon-yellow);
@@ -269,4 +287,28 @@ pre {
   margin-top:12px; font-size:15px; font-weight:600; color:var(--muted);
   background:rgba(13,21,38,.6); border:1px solid rgba(143,163,200,.25);
   border-radius:999px; padding:8px 16px; display:inline-block;
+}
+
+/* ===== TABEL PEMAPARAN ===== */
+.modal-wide { width:min(94vw, 760px); max-height:85vh; display:flex; flex-direction:column; }
+.table-actions { display:flex; gap:10px; margin:10px 0; }
+.table-wrap { flex:1; overflow-y:auto; margin-bottom:14px; }
+.table-wrap-inner { overflow-x:auto; }
+.table-papar {
+  width:100%; border-collapse:collapse; font-size:15px;
+}
+.table-papar th, .table-papar td {
+  padding:9px 12px; text-align:left; border-bottom:1px solid #1c2c4d;
+}
+.table-papar th {
+  font-family:'Orbitron', sans-serif; font-size:12px; letter-spacing:1px;
+  color:var(--neon-blue); background:rgba(0,212,255,.06);
+  position:sticky; top:0;
+}
+.row-done td:first-child { color:var(--neon-green); font-weight:700; }
+.row-pending td:first-child { color:var(--muted); }
+.row-done td:nth-child(3) { color:var(--neon-yellow); font-weight:700; }
+.table-area-title {
+  font-family:'Orbitron', sans-serif; font-size:14px; letter-spacing:1px;
+  color:var(--neon-yellow); margin:14px 0 6px;
 }

@@ -54,10 +54,20 @@
     <div class="area-grid" id="areaGrid"></div>
   </section>
 
-  <!-- STEP 2: Spin Pemenang -->
+  <!-- STEP 2: Spin Hadiah -->
   <section class="panel hidden" id="panel-spin">
     <div class="step-label" id="spinLabel">SPIN UNDIAN</div>
     <div class="area-info" id="areaInfo"></div>
+
+    <div class="warga-picker">
+      <label for="wargaSelect">👤 Pilih Warga yang Akan Spin</label>
+      <select id="wargaSelect">
+        <option value="">— Pilih nama warga —</option>
+      </select>
+      <button class="btn-ghost btn-sm" id="btnPickWarga">✓ Pilih</button>
+    </div>
+    <div class="warga-active hidden" id="wargaActive">🎯 Warga: <b id="wargaName"></b> — silakan TEKAN tombol!</div>
+
     <canvas id="canvasPeserta" width="560" height="560"></canvas>
     <div class="pointer"></div>
     <p class="instruction" id="spinInstruction">👉 Silakan warga TEKAN tombol di bawah untuk memutar roda undian!</p>
@@ -68,14 +78,24 @@
 
   <div class="nav-row hidden" id="navRow">
     <button class="btn-ghost" id="btnBack">← Ganti Area</button>
+    <button class="btn-primary" id="btnTable">📋 Tabel Pemaparan</button>
   </div>
 </main>
 
-<!-- Pemenang Terkumpul -->
-<aside class="winners-panel hidden" id="winnersPanel">
-  <h3>🏆 Pemenang (Sudah Dapat Hadiah)</h3>
-  <ol id="winnersList"></ol>
-</aside>
+<!-- Modal Tabel Pemaparan -->
+<div class="modal hidden" id="modalTable">
+  <div class="modal-box modal-wide">
+    <h3>📋 Tabel Pemaparan Undian</h3>
+    <div class="table-actions">
+      <button class="btn-ghost btn-sm" id="btnTableArea">Area ini saja</button>
+      <button class="btn-ghost btn-sm" id="btnTableAll">Semua area</button>
+    </div>
+    <div class="table-wrap" id="tableWrap"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="btnTableClose">Tutup</button>
+    </div>
+  </div>
+</div>
 
 <script src="TweenMax.min.js"></script>
 <script src="winwheel.min.js"></script>
