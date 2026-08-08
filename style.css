@@ -1,0 +1,185 @@
+/* ===== UNDIAN INTERNET MERDEKA — DARK NEON ===== */
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #070b16;
+  --bg2: #0d1526;
+  --panel: rgba(13,21,38,.85);
+  --neon-blue: #00d4ff;
+  --neon-green: #00ff9d;
+  --neon-red: #ff3d5a;
+  --neon-yellow: #ffd166;
+  --neon-purple: #b44dff;
+  --text: #e8f1ff;
+  --muted: #8fa3c8;
+  --radius: 18px;
+}
+
+body {
+  background: radial-gradient(1200px 800px at 50% -10%, #10204a 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 60px;
+  overflow-x: hidden;
+}
+
+.bg-glow {
+  position: fixed; inset:0; z-index:-1;
+  background:
+    radial-gradient(500px 300px at 15% 80%, rgba(0,212,255,.12), transparent 60%),
+    radial-gradient(500px 300px at 85% 20%, rgba(255,61,90,.10), transparent 60%);
+  pointer-events:none;
+}
+
+/* ===== HEADER ===== */
+.header { text-align:center; margin-bottom: 28px; }
+.badge-merdeka {
+  display:inline-block; padding:6px 18px; border-radius:999px;
+  background: linear-gradient(90deg, rgba(255,61,90,.15), rgba(255,209,102,.15));
+  border:1px solid rgba(255,209,102,.4);
+  color: var(--neon-yellow); font-weight:700; letter-spacing:2px; font-size:14px;
+  margin-bottom:14px;
+}
+.title {
+  font-family:'Orbitron', sans-serif;
+  font-size: clamp(26px, 5vw, 52px);
+  font-weight:900; letter-spacing:2px; text-transform:uppercase;
+}
+.neon {
+  color: var(--neon-blue);
+  text-shadow: 0 0 8px rgba(0,212,255,.8), 0 0 28px rgba(0,212,255,.45);
+}
+.subtitle { color: var(--muted); font-size: clamp(14px, 2.5vw, 18px); font-weight:600; margin-top:6px; }
+
+/* ===== STAGE ===== */
+.stage {
+  display:flex; flex-direction:column; align-items:center; gap:20px;
+  width:100%; max-width:680px;
+}
+.panel {
+  position:relative; width:min(92vw, 560px);
+  background: var(--panel);
+  border:1px solid rgba(0,212,255,.18);
+  border-radius: var(--radius);
+  padding: 20px 16px 24px;
+  box-shadow: 0 0 40px rgba(0,212,255,.08), 0 20px 50px rgba(0,0,0,.5);
+  text-align:center;
+}
+.hidden { display:none !important; }
+
+.step-label {
+  font-family:'Orbitron', sans-serif;
+  font-size: clamp(13px, 2.4vw, 16px); letter-spacing:3px; color: var(--neon-green);
+  margin-bottom:14px; text-transform:uppercase;
+}
+
+canvas { width:100%; height:auto; display:block; margin:0 auto; border-radius:50%; }
+
+.pointer {
+  position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+  width:0; height:0;
+  border-left:16px solid transparent; border-right:16px solid transparent;
+  border-top:26px solid var(--neon-yellow);
+  filter: drop-shadow(0 0 10px rgba(255,209,102,.9));
+  z-index:5;
+}
+
+/* ===== BUTTONS ===== */
+.btn-spin {
+  margin-top:18px; padding:14px 44px; font-size:22px; font-weight:700;
+  font-family:'Orbitron', sans-serif; letter-spacing:2px;
+  color:#04101f; background: linear-gradient(135deg, var(--neon-blue), var(--neon-green));
+  border:none; border-radius:999px; cursor:pointer;
+  box-shadow: 0 0 22px rgba(0,212,255,.5), 0 8px 20px rgba(0,0,0,.4);
+  transition: transform .12s ease, box-shadow .2s ease;
+}
+.btn-spin:hover { transform:translateY(-2px) scale(1.03); box-shadow: 0 0 34px rgba(0,255,157,.65); }
+.btn-spin:active { transform:scale(.96); }
+.btn-spin:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+
+.nav-row { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+.btn-ghost {
+  padding:12px 26px; font-size:16px; font-weight:700; color:var(--text);
+  background:transparent; border:1px solid var(--muted); border-radius:999px; cursor:pointer;
+}
+.btn-ghost:hover { border-color:var(--neon-blue); color:var(--neon-blue); }
+.btn-primary {
+  padding:12px 26px; font-size:16px; font-weight:700; color:#04101f;
+  background: linear-gradient(135deg, var(--neon-yellow), var(--neon-red));
+  border:none; border-radius:999px; cursor:pointer;
+  box-shadow: 0 0 18px rgba(255,209,102,.4);
+}
+.btn-primary:hover { transform:translateY(-2px); }
+
+/* ===== RESULT ===== */
+.result-box {
+  margin-top:16px; min-height:56px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:700; color:var(--neon-green);
+  letter-spacing:1px;
+}
+.result-big {
+  min-height:84px; font-size: clamp(26px, 5vw, 40px);
+  font-family:'Orbitron', sans-serif; font-weight:900;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 18px rgba(255,209,102,.7);
+  text-transform:uppercase; word-break:break-word; padding:8px;
+}
+.result-box.win { animation: pop .5s ease; }
+@keyframes pop {
+  0% { transform:scale(.6); opacity:0; }
+  60% { transform:scale(1.08); }
+  100% { transform:scale(1); opacity:1; }
+}
+
+/* ===== WINNERS PANEL ===== */
+.winners-panel {
+  width:min(92vw, 560px); margin-top:28px;
+  background: var(--panel); border:1px solid rgba(255,209,102,.2);
+  border-radius: var(--radius); padding:18px 20px;
+}
+.winners-panel h3 { font-family:'Orbitron', sans-serif; color:var(--neon-yellow); letter-spacing:2px; margin-bottom:10px; font-size:16px; }
+.winners-panel ol { padding-left:22px; }
+.winners-panel li { font-size:16px; font-weight:600; margin:4px 0; color:var(--text); }
+.winners-panel li span.area { color:var(--muted); font-weight:400; font-size:13px; }
+
+/* ===== UPLOAD ===== */
+.btn-upload {
+  position:fixed; bottom:18px; right:18px; z-index:40;
+  padding:11px 20px; font-size:14px; font-weight:700;
+  color:var(--neon-blue); background:rgba(0,212,255,.08);
+  border:1px solid rgba(0,212,255,.4); border-radius:999px; cursor:pointer;
+}
+.btn-upload:hover { background:rgba(0,212,255,.18); }
+
+.modal {
+  position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.7); backdrop-filter: blur(4px);
+}
+.modal-box {
+  width:min(92vw, 480px); background:var(--bg2); border:1px solid rgba(0,212,255,.3);
+  border-radius:var(--radius); padding:24px;
+}
+.modal-box h3 { font-family:'Orbitron', sans-serif; color:var(--neon-blue); margin-bottom:10px; }
+.hint { color:var(--muted); font-size:14px; margin-bottom:8px; }
+pre {
+  background:#05080f; border:1px solid #1c2c4d; border-radius:10px;
+  padding:10px 12px; font-size:12px; color:var(--neon-green);
+  margin-bottom:14px; overflow-x:auto; white-space:pre-wrap;
+}
+.modal-box input[type=file] {
+  width:100%; padding:10px; margin-bottom:16px; color:var(--text);
+  background:#05080f; border:1px dashed var(--muted); border-radius:10px;
+}
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; }
+#csvStatus { margin-top:12px; font-weight:700; color:var(--neon-green); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  .btn-spin { font-size:18px; padding:12px 32px; }
+  .btn-upload { font-size:12px; padding:9px 14px; }
+}
