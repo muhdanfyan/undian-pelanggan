@@ -130,6 +130,11 @@ canvas { width:100%; height:auto; display:block; margin:0 auto; border-radius:50
   text-transform:uppercase; word-break:break-word; padding:8px;
 }
 .result-box.win { animation: pop .5s ease; }
+.result-box.zonk {
+  color: #9ca3af;
+  text-shadow: 0 0 10px rgba(156,163,175,.4);
+  animation: pop .5s ease;
+}
 @keyframes pop {
   0% { transform:scale(.6); opacity:0; }
   60% { transform:scale(1.08); }
@@ -308,6 +313,8 @@ pre {
 .row-done td:first-child { color:var(--neon-green); font-weight:700; }
 .row-pending td:first-child { color:var(--muted); }
 .row-done td:nth-child(3) { color:var(--neon-yellow); font-weight:700; }
+.row-zonk td { color:#9ca3af !important; }
+.row-zonk td:first-child { text-decoration:line-through; }
 .table-area-title {
   font-family:'Orbitron', sans-serif; font-size:14px; letter-spacing:1px;
   color:var(--neon-yellow); margin:14px 0 6px;

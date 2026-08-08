@@ -9,6 +9,7 @@ const KOORDINATOR = {
   aldin:  { nama: 'ALDIN',  pass: 'merdeka2026', agen: 'ALDIN' },
   munir:  { nama: 'MUNIR',  pass: 'merdeka2026', agen: 'MUNIR' },
   nasrun: { nama: 'NASRUN', pass: 'merdeka2026', agen: 'NASRUN' },
+  irvan:  { nama: 'IRVAN',  pass: 'merdeka2026', agen: 'IRVAN' },
 };
 
 /* ---------- DAFTAR HADIAH (total 62 unit) ---------- */
@@ -180,6 +181,14 @@ function getBelumList(agen, area) {
   return semua.filter(n => !sudahSet.has(n));
 }
 
+/* Warga wajib zonk = tetap spin tapi dijamin TIDAK dapat hadiah */
+function isWajibZonk(agen, area, nama) {
+  if (!nama) return false;
+  const list = (WAJIB_ZONK[agen] && WAJIB_ZONK[agen][area]) || [];
+  const target = nama.trim().toUpperCase();
+  return list.some(n => n.trim().toUpperCase() === target);
+}
+
 function selectArea(area) {
   state.area = area;
   state.activeWarga = null;
@@ -201,7 +210,8 @@ function renderWargaPicker() {
   sel.appendChild(opt);
   belum.forEach(n => {
     const o = document.createElement('option');
-    o.value = n; o.textContent = n;
+    o.value = n;
+    o.textContent = isWajibZonk(k.agen, state.area, n) ? n + ' ⚡ (ZONK)' : n;
     sel.appendChild(o);
   });
   els.wargaActive.classList.add('hidden');
@@ -216,8 +226,9 @@ els.btnPickWarga.addEventListener('click', () => {
   els.wargaName.textContent = nama;
   els.wargaActive.classList.remove('hidden');
   els.resultPeserta.textContent = '';
-  els.resultPeserta.classList.remove('win');
+  els.resultPeserta.classList.remove('win', 'zonk');
   els.btnSpinPeserta.disabled = false;
+  initWheel(); // roda menyesuaikan: wajib zonk → roda ZONK
 });
 
 /* ---------- WHEEL (HADIAH) ---------- */
@@ -228,26 +239,44 @@ function getAvailablePrizes() {
   return PRIZES.filter(p => p.qty > 0);
 }
 
-function initWheel() {
-  const prizes = getAvailablePrizes();
-  clearResult();
-  if (!prizes.length) {
+function initWheel(opts = {}) {
+  if (!opts.preserveResult) clearResult();
+  const k = KOORDINATOR[state.user];
+  const zonkMode = isWajibZonk(k.agen, state.area, state.activeWarga);
+  const prizes = zonkMode ? [] : getAvailablePrizes();
+  if (!zonkMode && !prizes.length) {
     els.resultPeserta.textContent = '✅ Semua hadiah sudah habis!';
     els.btnSpinPeserta.disabled = true;
     updateCounter();
     return;
   }
-  const fs = prizes.length > 12 ? 12 : prizes.length > 8 ? 14 : 17;
-  const segs = prizes.map((p, i) => ({
-    fillStyle: COLORS[i % COLORS.length],
-    text: p.name,
-    textFontSize: fs,
-    textFillStyle: '#ffffff',
-    textFontFamily: 'Rajdhani',
-    textFontWeight: 'bold',
-    textOrientation: 'horizontal',
-    textAlignment: 'center',
-  }));
+
+  let segs;
+  if (zonkMode) {
+    // Roda khusus ZONK — 1 segmen, pasti ZONK
+    segs = [{
+      fillStyle: '#374151',
+      text: 'ZONK',
+      textFontSize: 30,
+      textFillStyle: '#ffffff',
+      textFontFamily: 'Rajdhani',
+      textFontWeight: 'bold',
+      textOrientation: 'horizontal',
+      textAlignment: 'center',
+    }];
+  } else {
+    const fs = prizes.length > 12 ? 12 : prizes.length > 8 ? 14 : 17;
+    segs = prizes.map((p, i) => ({
+      fillStyle: COLORS[i % COLORS.length],
+      text: p.name,
+      textFontSize: fs,
+      textFillStyle: '#ffffff',
+      textFontFamily: 'Rajdhani',
+      textFontWeight: 'bold',
+      textOrientation: 'horizontal',
+      textAlignment: 'center',
+    }));
+  }
 
   wheelCbId = 'wheelCb' + Date.now();
   window[wheelCbId] = function () {
@@ -255,6 +284,19 @@ function initWheel() {
     const seg = wheel.getIndicatedSegment();
     const prizeName = seg ? seg.text : null;
     if (!prizeName) return;
+    if (prizeName === 'ZONK') {
+      recordWinner('ZONK');
+      els.resultPeserta.textContent = '😬 ZONK — belum beruntung!';
+      els.resultPeserta.classList.add('zonk');
+      state.activeWarga = null;
+      els.wargaActive.classList.add('hidden');
+      updateCounter();
+      initWheel({ preserveResult: true });
+      renderWargaPicker();
+      els.btnSpinPeserta.disabled = false;
+      state.spinning = false;
+      return;
+    }
     const prize = PRIZES.find(p => p.name === prizeName);
     if (prize) {
       prize.qty--;   // kurangi stok hadiah
@@ -266,7 +308,7 @@ function initWheel() {
     state.activeWarga = null;
     els.wargaActive.classList.add('hidden');
     updateCounter();
-    initWheel();   // rebuild roda — hadiah habis tidak muncul lagi
+    initWheel({ preserveResult: true });   // rebuild roda — hadiah habis tidak muncul lagi
     renderWargaPicker();
     els.btnSpinPeserta.disabled = false;
     state.spinning = false;
@@ -274,7 +316,7 @@ function initWheel() {
 
   wheel = new Winwheel({
     canvasId: 'canvasPeserta',
-    numSegments: prizes.length,
+    numSegments: segs.length,
     outerRadius: 258,
     centerX: 280,
     centerY: 280,
@@ -326,7 +368,7 @@ function showPanel(name) {
 }
 function clearResult() {
   els.resultPeserta.textContent = '';
-  els.resultPeserta.classList.remove('win');
+  els.resultPeserta.classList.remove('win', 'zonk');
 }
 function updateCounter() {
   const k = KOORDINATOR[state.user];
@@ -372,10 +414,11 @@ function buildTable(agen, area) {
   let rows = '';
   semua.forEach(n => {
     const h = sudahMap[n];
-    rows += `<tr class="${h ? 'row-done' : 'row-pending'}">
+    const isZonk = h === 'ZONK';
+    rows += `<tr class="${isZonk ? 'row-zonk' : h ? 'row-done' : 'row-pending'}">
       <td>${n}</td>
       <td>${h ? '✅ Sudah' : '⏳ Belum'}</td>
-      <td>${h || '—'}</td>
+      <td>${isZonk ? '😬 ZONK' : (h || '—')}</td>
     </tr>`;
   });
   return `<div class="table-wrap-inner"><table class="table-papar">
