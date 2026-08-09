@@ -77,6 +77,37 @@
     <div class="counter" id="counterPeserta"></div>
   </section>
 
+  <!-- UNDIAN UTAMA (GRAND) — SEPEDA LISTRIK 17 AGUSTUS -->
+  <section class="panel hidden" id="panelGrand">
+    <div class="step-label">🎁 UNDIAN UTAMA — SEPEDA LISTRIK</div>
+    <div class="area-info">🏆 Terpusat: semua warga dari semua koordinator</div>
+
+    <div class="warga-picker">
+      <label for="grandSelect">👤 Pilih Warga (semua koordinator)</label>
+      <select id="grandSelect">
+        <option value="">— Pilih nama warga —</option>
+      </select>
+      <button class="btn-ghost btn-sm" id="btnPickGrand">✓ Pilih</button>
+    </div>
+    <div class="warga-active hidden" id="grandWargaActive">🏆 Warga: <b id="grandWargaName"></b> — silakan TEKAN tombol!</div>
+
+    <canvas id="canvasGrand" width="560" height="560"></canvas>
+    <div class="pointer"></div>
+    <p class="instruction">👉 Tekan tombol untuk memutar roda Undian Utama!</p>
+    <button class="btn-spin btn-spin-grand" id="btnSpinGrand">🏆 PUTAR UNDIAN UTAMA</button>
+    <div class="result-box result-big" id="resultGrand"></div>
+    <div class="counter" id="counterGrand"></div>
+    <button class="btn-ghost" id="btnBackGrand">← Kembali</button>
+  </section>
+
+  <!-- VERIFIKASI ZONK — KHUSUS OWNER -->
+  <section class="panel hidden" id="panelVerif">
+    <div class="step-label">🛡️ VERIFIKASI ZONK (GLOBAL)</div>
+    <div class="area-info">Semua warga semua koordinator — penanda ⚡ = wajib ZONK</div>
+    <div class="table-wrap" id="verifWrap"></div>
+    <button class="btn-ghost" id="btnBackVerif">← Kembali</button>
+  </section>
+
   <div class="nav-row hidden" id="navRow">
     <button class="btn-ghost" id="btnBack">← Ganti Area</button>
     <button class="btn-primary" id="btnTable">📋 Tabel Pemaparan</button>

@@ -259,6 +259,34 @@ pre {
 .area-name { font-size:18px; font-weight:700; letter-spacing:1px; }
 .area-count { font-family:'Rajdhani', sans-serif; font-size:14px; font-weight:600; color:var(--muted); }
 
+/* Kartu Undian Utama (grand) + Verifikasi ZONK */
+.area-card-grand {
+  background:linear-gradient(135deg, rgba(255,215,0,.12), rgba(255,140,0,.08));
+  border:1px solid rgba(255,215,0,.5);
+}
+.area-card-grand:hover {
+  background:linear-gradient(135deg, rgba(255,215,0,.22), rgba(255,140,0,.16));
+  box-shadow: 0 0 30px rgba(255,215,0,.4);
+}
+.area-card-verif {
+  background:rgba(180,77,255,.08);
+  border:1px solid rgba(180,77,255,.4);
+}
+.area-card-verif:hover {
+  background:rgba(180,77,255,.16);
+  box-shadow: 0 0 26px rgba(180,77,255,.35);
+}
+.btn-spin-grand {
+  background:linear-gradient(135deg, #ffd700, #ff8a00);
+  color:#3b2f00;
+}
+.btn-spin-grand:hover {
+  box-shadow: 0 0 38px rgba(255,215,0,.75);
+}
+.verif-agen {
+  font-size:13px; font-weight:600; color:var(--muted);
+}
+
 /* ===== SPIN PAGE ===== */
 .warga-picker {
   display:flex; flex-direction:column; gap:8px; align-items:center;
