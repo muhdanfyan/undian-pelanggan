@@ -294,6 +294,13 @@ pre {
   background:rgba(0,255,157,.05); border:1px solid rgba(0,255,157,.2);
 }
 .warga-picker label { font-size:14px; font-weight:700; color:var(--muted); }
+.warga-picker .warga-search {
+  width:100%; max-width:360px; padding:10px 12px; font-size:15px; font-weight:600;
+  color:var(--text); background:#05080f; border:1px solid #1c2c4d; border-radius:10px;
+  font-family:'Rajdhani', sans-serif;
+}
+.warga-picker .warga-search::placeholder { color:#4a5a7a; }
+.warga-picker .warga-search:focus { outline:none; border-color:var(--neon-green); box-shadow:0 0 0 2px rgba(0,255,157,.15); }
 .warga-picker select {
   width:100%; max-width:360px; padding:11px 12px; font-size:16px; font-weight:600;
   color:var(--text); background:#05080f; border:1px solid #1c2c4d; border-radius:10px;

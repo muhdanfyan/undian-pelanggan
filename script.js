@@ -94,6 +94,7 @@ const els = {
   spinLabel: $('spinLabel'),
   areaInfo: $('areaInfo'),
   wargaSelect: $('wargaSelect'),
+  wargaSearch: $('wargaSearch'),
   btnPickWarga: $('btnPickWarga'),
   wargaActive: $('wargaActive'),
   wargaName: $('wargaName'),
@@ -107,6 +108,7 @@ const els = {
   // UNDIAN UTAMA (GRAND) — sepeda listrik 17 Agu
   panelGrand: $('panelGrand'),
   grandSelect: $('grandSelect'),
+  grandSearch: $('grandSearch'),
   btnPickGrand: $('btnPickGrand'),
   grandWargaActive: $('grandWargaActive'),
   grandWargaName: $('grandWargaName'),
@@ -286,23 +288,42 @@ function selectArea(area) {
 }
 
 /* ---------- WARGA PICKER ---------- */
+let _wargaAll = []; // daftar penuh (sebelum filter pencarian)
+let _grandAll = []; // daftar penuh grand (sebelum filter pencarian)
+
 function renderWargaPicker() {
   const k = KOORDINATOR[state.user];
   const belum = getBelumList(k.agen, state.area);
+  // Urutkan A-Z (case-insensitive) — biar dropdown rapi & mudah dicari
+  _wargaAll = belum.slice().sort((a, b) => a.localeCompare(b, 'id', { sensitivity: 'base' }));
+  // Reset pencarian saat pindah area
+  if (els.wargaSearch) els.wargaSearch.value = '';
+  applyWargaFilter();
+  els.wargaActive.classList.add('hidden');
+  els.btnPickWarga.disabled = !_wargaAll.length;
+  updateCounter();
+}
+
+function applyWargaFilter() {
+  const q = (els.wargaSearch ? els.wargaSearch.value : '').trim().toLowerCase();
+  const filtered = q ? _wargaAll.filter(n => n.toLowerCase().includes(q)) : _wargaAll;
   const sel = els.wargaSelect;
   sel.innerHTML = '';
   const opt = document.createElement('option');
-  opt.value = ''; opt.textContent = belum.length ? '— Pilih nama warga —' : '— Semua warga sudah spin! —';
+  opt.value = ''; opt.textContent = filtered.length ? '— Pilih nama warga —' : (q ? '— Tidak ditemukan —' : '— Semua warga sudah spin! —');
   sel.appendChild(opt);
-  belum.forEach(n => {
+  // Nama tampil BERSIH tanpa keterangan ZONK — status zonk tetap diam-diam
+  filtered.forEach(n => {
     const o = document.createElement('option');
     o.value = n;
-    o.textContent = isWajibZonk(k.agen, state.area, n) ? n + ' ⚡ (ZONK)' : n;
+    o.textContent = n;
     sel.appendChild(o);
   });
-  els.wargaActive.classList.add('hidden');
-  els.btnPickWarga.disabled = !belum.length;
-  updateCounter();
+  els.btnPickWarga.disabled = !filtered.length;
+}
+
+if (els.wargaSearch) {
+  els.wargaSearch.addEventListener('input', applyWargaFilter);
 }
 
 els.btnPickWarga.addEventListener('click', () => {
@@ -335,49 +356,37 @@ Object.keys(AGEN_QUOTA).forEach(agen => {
 function initWheel(opts = {}) {
   if (!opts.preserveResult) clearResult();
   const k = KOORDINATOR[state.user];
-  const zonkMode = isWajibZonk(k.agen, state.area, state.activeWarga);
-  const prizes = zonkMode ? [] : getAvailablePrizes(k.agen);
-  if (!zonkMode && !prizes.length) {
-    els.resultPeserta.textContent = '✅ Semua hadiah sudah habis!';
+  const prizes = getAvailablePrizes(k.agen);
+  if (!prizes.length) {
+    els.resultPeserta.textContent = '✅ Semua hadiah sudah habis!' + (isWajibZonk(k.agen, state.area, state.activeWarga) ? ' (warga wajib ZONK)' : '');
     els.btnSpinPeserta.disabled = true;
     updateCounter();
     return;
   }
 
-  let segs;
-  if (zonkMode) {
-    // Roda khusus ZONK — 1 segmen, pasti ZONK
-    segs = [{
-      fillStyle: '#374151',
-      text: 'ZONK',
-      textFontSize: 30,
-      textFillStyle: '#ffffff',
-      textFontFamily: 'Rajdhani',
-      textFontWeight: 'bold',
-      textOrientation: 'horizontal',
-      textAlignment: 'center',
-    }];
-  } else {
-    const fs = prizes.length > 12 ? 12 : prizes.length > 8 ? 14 : 17;
-    segs = prizes.map((p, i) => ({
-      fillStyle: COLORS[i % COLORS.length],
-      text: p.name,
-      textFontSize: fs,
-      textFillStyle: '#ffffff',
-      textFontFamily: 'Rajdhani',
-      textFontWeight: 'bold',
-      textOrientation: 'horizontal',
-      textAlignment: 'center',
-    }));
-  }
+  // Roda SELALU normal (hadiah) — peserta wajib ZONK tetap melihat roda sama seperti
+  // peserta lain; hasilnya dipaksa ZONK di callback (zonkMode).
+  const fs = prizes.length > 12 ? 12 : prizes.length > 8 ? 14 : 17;
+  const segs = prizes.map((p, i) => ({
+    fillStyle: COLORS[i % COLORS.length],
+    text: p.name,
+    textFontSize: fs,
+    textFillStyle: '#ffffff',
+    textFontFamily: 'Rajdhani',
+    textFontWeight: 'bold',
+    textOrientation: 'horizontal',
+    textAlignment: 'center',
+  }));
 
   wheelCbId = 'wheelCb' + Date.now();
   window[wheelCbId] = function () {
     stopTicking();
+    const isZonkWarga = isWajibZonk(k.agen, state.area, state.activeWarga);
     const seg = wheel.getIndicatedSegment();
     const prizeName = seg ? seg.text : null;
     if (!prizeName) return;
-    if (prizeName === 'ZONK') {
+    // Peserta wajib ZONK: meskipun jarum menunjuk hadiah, hasil DIPAKSA ZONK
+    if (prizeName === 'ZONK' || isZonkWarga) {
       recordWinner('ZONK');
       els.resultPeserta.textContent = '😬 ZONK — belum beruntung!';
       els.resultPeserta.classList.add('zonk');
@@ -506,25 +515,38 @@ function openGrand() {
 }
 
 function renderGrandPicker() {
-  const sel = els.grandSelect;
-  sel.innerHTML = '';
   const sudahSet = new Set(state.grandSudah.map(x => x.warga + '|' + x.agen));
   const rows = getAllWarga().filter(r => !sudahSet.has(r.nama + '|' + r.agen));
+  // Urutkan A-Z (case-insensitive)
+  _grandAll = rows.slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
+  if (els.grandSearch) els.grandSearch.value = '';
+  applyGrandFilter();
+  els.grandWargaActive.classList.add('hidden');
+  els.btnPickGrand.disabled = !_grandAll.length;
+  updateGrandCounter();
+}
+
+function applyGrandFilter() {
+  const q = (els.grandSearch ? els.grandSearch.value : '').trim().toLowerCase();
+  const filtered = q ? _grandAll.filter(r => r.nama.toLowerCase().includes(q)) : _grandAll;
+  const sel = els.grandSelect;
+  sel.innerHTML = '';
   const opt = document.createElement('option');
   opt.value = '';
-  opt.textContent = rows.length ? '— Pilih warga (semua koordinator) —' : '— Semua warga sudah spin grand! —';
+  opt.textContent = filtered.length ? '— Pilih warga (semua koordinator) —' : (q ? '— Tidak ditemukan —' : '— Semua warga sudah spin grand! —');
   sel.appendChild(opt);
-  rows.forEach(r => {
+  // Nama tampil BERSIH tanpa keterangan ZONK
+  filtered.forEach(r => {
     const o = document.createElement('option');
     o.value = r.nama + '|' + r.agen;
-    o.textContent = isWajibZonk(r.agen, r.area, r.nama)
-      ? `${r.nama} ⚡ (ZONK) · ${r.agen}`
-      : `${r.nama} · ${r.agen}`;
+    o.textContent = `${r.nama} · ${r.agen}`;
     sel.appendChild(o);
   });
-  els.grandWargaActive.classList.add('hidden');
-  els.btnPickGrand.disabled = !rows.length;
-  updateGrandCounter();
+  els.btnPickGrand.disabled = !filtered.length;
+}
+
+if (els.grandSearch) {
+  els.grandSearch.addEventListener('input', applyGrandFilter);
 }
 
 els.btnPickGrand.addEventListener('click', () => {
