@@ -75,6 +75,33 @@ const state = {
   grandSudah: [],    // [ { warga, agen, hadiah } ] — riwayat grand
 };
 
+/* ---------- PERSISTENSI LOCALSTORAGE ----------
+   Riwayat pemenang, sisa stok hadiah & riwayat grand disimpan agar
+   setelah refresh orang yang sama TIDAK bisa spin/menang lagi. */
+(function restoreRiwayat() {
+  try {
+    const savedSudah = JSON.parse(localStorage.getItem('undian_sudah_v1'));
+    if (savedSudah && typeof savedSudah === 'object') state.sudah = savedSudah;
+  } catch (e) { /* data rusak — abaikan */ }
+  try {
+    const savedGrand = JSON.parse(localStorage.getItem('undian_grand_v1'));
+    if (Array.isArray(savedGrand)) state.grandSudah = savedGrand;
+  } catch (e) { /* data rusak — abaikan */ }
+})();
+
+function saveState() {
+  try {
+    localStorage.setItem('undian_sudah_v1', JSON.stringify(state.sudah));
+    localStorage.setItem('undian_qty_v1', JSON.stringify({
+      agen: Object.keys(AGEN_QUOTA).map(name => ({
+        name,
+        qty: AGEN_QUOTA[name].map(p => ({ name: p.name, qty: p.qty })),
+      })),
+    }));
+    localStorage.setItem('undian_grand_v1', JSON.stringify(state.grandSudah));
+  } catch (e) { /* localStorage tidak tersedia — abaikan */ }
+}
+
 const COLORS = [
   '#00d4ff', '#ff3d5a', '#00ff9d', '#ffd166', '#b44dff',
   '#ff8a3d', '#3dffd1', '#ff4da6', '#4d79ff', '#a8ff3d',
@@ -192,6 +219,12 @@ $('loginForm').addEventListener('submit', (e) => {
 $('btnLogout').addEventListener('click', () => {
   state.user = null; state.area = null; state.activeWarga = null;
   state.sudah = {};
+  // logout = reset undian: hapus semua data persistensi
+  try {
+    localStorage.removeItem('undian_sudah_v1');
+    localStorage.removeItem('undian_qty_v1');
+    localStorage.removeItem('undian_grand_v1');
+  } catch (e) { /* abaikan */ }
   els.loginScreen.classList.remove('hidden');
   els.appHeader.classList.add('hidden');
   els.stage.classList.add('hidden');
@@ -348,6 +381,21 @@ function getAvailablePrizes(agen) {
 function getAgenPrizeTotal(agen) {
   return (AGEN_QUOTA[agen] || []).reduce((a, p) => a + (p.qty0 != null ? p.qty0 : p.qty), 0);
 }
+/* restore sisa stok hadiah dari localStorage — stok TIDAK reset saat refresh */
+try {
+  const savedQty = JSON.parse(localStorage.getItem('undian_qty_v1'));
+  if (savedQty && Array.isArray(savedQty.agen)) {
+    savedQty.agen.forEach(sa => {
+      const agen = AGEN_QUOTA[sa.name];
+      if (agen && Array.isArray(sa.qty)) {
+        sa.qty.forEach(sq => {
+          const p = agen.find(x => x.name === sq.name);
+          if (p && typeof sq.qty === 'number') p.qty = sq.qty;
+        });
+      }
+    });
+  }
+} catch (e) { /* data rusak — abaikan */ }
 /* snapshot kuota awal — supaya counter "dari X unit" tetap (tidak ikut turun saat qty berkurang) */
 Object.keys(AGEN_QUOTA).forEach(agen => {
   AGEN_QUOTA[agen].forEach(p => { p.qty0 = p.qty; });
@@ -408,6 +456,7 @@ function initWheel(opts = {}) {
     const prize = (AGEN_QUOTA[k.agen] || []).find(p => p.name === prizeName);
     if (prize) {
       prize.qty--;   // kurangi stok hadiah
+      saveState();   // simpan sisa stok segera setelah berkurang
       recordWinner(prizeName);
     }
     els.resultPeserta.textContent = '🎁 ' + prizeName;
@@ -448,6 +497,7 @@ function recordWinner(prizeName) {
   if (!state.sudah[k.agen]) state.sudah[k.agen] = {};
   if (!state.sudah[k.agen][state.area]) state.sudah[k.agen][state.area] = [];
   state.sudah[k.agen][state.area].push({ warga: state.activeWarga, hadiah: prizeName });
+  saveState(); // simpan riwayat pemenang + sisa stok ke localStorage
 }
 
 function spinWheel() {
@@ -483,9 +533,7 @@ function clearResult() {
 function updateCounter() {
   const k = KOORDINATOR[state.user];
   const belum = getBelumList(k.agen, state.area);
-  const sisa = getAvailablePrizes(k.agen).reduce((a, p) => a + p.qty, 0);
-  const total = getAgenPrizeTotal(k.agen);
-  els.counterPeserta.textContent = `Belum spin: ${belum.length} warga · Hadiah tersisa: ${sisa} dari ${total} unit (kuota ${k.agen})`;
+  els.counterPeserta.textContent = `Belum spin: ${belum.length} warga`;
 }
 
 els.btnBack.addEventListener('click', () => {
@@ -618,6 +666,7 @@ function initGrandWheel(opts = {}) {
     if (!prizeName) return;
     if (prizeName === 'ZONK') {
       state.grandSudah.push({ warga: state.grandWarga.nama, agen: state.grandWarga.agen, hadiah: 'ZONK' });
+      saveState(); // simpan riwayat grand (ZONK)
       els.resultGrand.textContent = '😬 ZONK — belum beruntung!';
       els.resultGrand.classList.add('zonk');
       state.grandWarga = null;
@@ -632,6 +681,7 @@ function initGrandWheel(opts = {}) {
     const gp = GRAND_PRIZE.find(p => p.name === prizeName);
     if (gp) gp.qty--; // sepeda listrik habis — tidak bisa dimenangkan lagi
     state.grandSudah.push({ warga: state.grandWarga.nama, agen: state.grandWarga.agen, hadiah: prizeName });
+    saveState(); // simpan riwayat grand + stok grand
     els.resultGrand.textContent = '🏆 SELAMAT! ' + prizeName + ' untuk ' + state.grandWarga.nama + '!';
     els.resultGrand.classList.add('win');
     playFanfare(); fireConfetti();
@@ -689,7 +739,7 @@ function updateGrandCounter() {
   const sudahSet = new Set(state.grandSudah.map(x => x.warga + '|' + x.agen));
   const total = getAllWarga().length;
   const sisa = total - sudahSet.size;
-  els.counterGrand.textContent = `Grand (terpusat): ${sisa} dari ${total} warga belum spin · Sepeda Listrik: ${gpLeft ? 'tersedia 🏆' : 'SUDAH MENANG!'}`;
+  els.counterGrand.textContent = `Grand (terpusat): ${sisa} dari ${total} warga belum spin${gpLeft ? '' : ' · 🏆 SUDAH MENANG!'}`;
 }
 
 els.btnBackGrand.addEventListener('click', () => {
