@@ -168,8 +168,13 @@ function ensureAudio() {
   return audioCtx;
 }
 let tickTimer = null;
+let tickLevel = 1;
+let tickFading = false;
 function startTicking() {
   const ctx = ensureAudio(); if (!ctx) return;
+  if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+  tickLevel = 1;
+  tickFading = false;
   const tick = () => {
     const o = ctx.createOscillator();
     const g = ctx.createGain();
@@ -182,7 +187,33 @@ function startTicking() {
   tick();
   tickTimer = setInterval(tick, 130);
 }
-function stopTicking() { if (tickTimer) { clearInterval(tickTimer); tickTimer = null; } }
+function stopTicking() {
+  if (!tickTimer || tickFading) return;
+  tickFading = true;
+  let _fadeSteps = 0;
+  const fadeStep = () => {
+    _fadeSteps++;
+    tickLevel *= 0.55;
+    if (_fadeSteps >= 6 || tickLevel < 0.02) {
+      clearInterval(tickTimer); tickTimer = null; tickFading = false; tickLevel = 1;
+      return;
+    }
+    const ctx = audioCtx;
+    if (ctx) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'square'; o.frequency.value = 1400;
+      g.gain.setValueAtTime(0.08 * tickLevel, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.07);
+    }
+    clearInterval(tickTimer);
+    tickTimer = setInterval(fadeStep, 120 + _fadeSteps * 35);
+  };
+  clearInterval(tickTimer);
+  tickTimer = setInterval(fadeStep, 120);
+}
 
 function playFanfare() {
   const ctx = ensureAudio(); if (!ctx) return;
