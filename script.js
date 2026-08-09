@@ -453,7 +453,10 @@ function initWheel(opts = {}) {
   // Probabilitas menang DINAMIS = sisaHadiah / sisaPeserta (cap 0.85 agar tidak pernah 100%).
   // Diterapkan lewat bobot segmen Winwheel (size = derajat busur).
   const sisaHadiah = prizes.reduce((a, p) => a + p.qty, 0);
-  const sisaPeserta = getBelumList(k.agen, state.area).length;
+  // Peluang SEIMBANG per agen: sisaPeserta = jumlah BELUM SPIN di SEMUA area milik agen
+  // (bukan hanya area aktif) — proporsi sisaHadiah/sisaPeserta jadi konsisten antar area
+  // (ALDIN 7/67 ≈ 10,4%, MUNIR 20/194, NASRUN 20/196, IRVAN 14/134 ≈ 10,3-10,4%).
+  const sisaPeserta = Object.keys(DATA_PESERTA[k.agen] || {}).reduce((a, ar) => a + getBelumList(k.agen, ar).length, 0);
   const winProb = (sisaHadiah > 0 && sisaPeserta > 0) ? Math.min(sisaHadiah / sisaPeserta, 0.85) : 0;
 
   const fs = prizes.length > 12 ? 12 : prizes.length > 8 ? 14 : 17;
@@ -482,7 +485,7 @@ function initWheel(opts = {}) {
     // → dikonversi ke derajat: hadiah = 360·winProb/nHadiah, ZONK = 360·(1-winProb)/8.
     const prizeDeg = 360 * winProb / prizes.length;
     const zonkDeg = 360 * (1 - winProb) / ZONK_SEGMENTS;
-    segs = prizes.map((p, i) => ({
+    const prizeSegs = prizes.map((p, i) => ({
       fillStyle: COLORS[i % COLORS.length],
       text: p.name,
       textFontSize: fs,
@@ -493,8 +496,9 @@ function initWheel(opts = {}) {
       textAlignment: 'center',
       size: prizeDeg,
     }));
+    const zonkSegs = [];
     for (let i = 0; i < ZONK_SEGMENTS; i++) {
-      segs.push({
+      zonkSegs.push({
         fillStyle: ZONK_COLORS[i % ZONK_COLORS.length],
         text: 'ZONK',
         textFontSize: fs,
@@ -505,6 +509,29 @@ function initWheel(opts = {}) {
         textAlignment: 'center',
         size: zonkDeg,
       });
+    }
+    // INTERLEAVE: hadiah TERSebar merata di antara ZONK (tidak mengumpul satu sisi).
+    // Posisi hadiah = Math.round(i * total / nHadiah) → jarak antar hadiah merata.
+    const total = prizes.length + ZONK_SEGMENTS;
+    segs = new Array(total);
+    prizes.forEach((_, i) => {
+      let pos = Math.round(i * total / prizes.length);
+      // Safety: kalau posisi sudah terisi (dobel), geser ke slot kosong terdekat.
+      while (segs[pos] !== undefined) {
+        let shifted = false;
+        for (let d = 1; d < total; d++) {
+          const fwd = (pos + d) % total, bwd = (pos - d + total) % total;
+          if (segs[fwd] === undefined) { pos = fwd; shifted = true; break; }
+          if (segs[bwd] === undefined) { pos = bwd; shifted = true; break; }
+        }
+        if (!shifted) break;
+      }
+      segs[pos] = prizeSegs[i];
+    });
+    // Slot kosong sisanya diisi segmen ZONK berurutan.
+    let zi = 0;
+    for (let i = 0; i < total; i++) {
+      if (segs[i] === undefined) segs[i] = zonkSegs[zi++ % ZONK_SEGMENTS];
     }
   }
 
@@ -560,6 +587,7 @@ function initWheel(opts = {}) {
       type: 'spinToStop',
       duration: 6,
       spins: 7 + Math.floor(Math.random() * 5),
+      easing: 'Power4.easeOut', // mulai cepat, melambat dramatis (didukung winwheel.min.js/TweenMax)
       callbackFinished: wheelCbId + '()',
     },
     pointerAngle: 90,

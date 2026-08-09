@@ -38,6 +38,9 @@ const BELUM_BAYAR = {
   // "AGEN": {
   //   "AREA": ["NAMA", ...]
   // }
+  "IRVAN": {
+    "PALABUSA, WANAJATI, KALIPU2, WONCO": ["RESKY MOTOR"]
+  }
 };
 
 const DATA_PESERTA = {
