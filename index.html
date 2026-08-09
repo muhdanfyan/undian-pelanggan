@@ -71,8 +71,10 @@
     </div>
     <div class="warga-active hidden" id="wargaActive">🎯 Warga: <b id="wargaName"></b> — silakan TEKAN tombol!</div>
 
-    <canvas id="canvasPeserta" width="560" height="560"></canvas>
-    <div class="pointer"></div>
+    <div class="wheel-wrap">
+      <canvas id="canvasPeserta" width="560" height="560"></canvas>
+      <div class="pointer"></div>
+    </div>
     <p class="instruction" id="spinInstruction">👉 Silakan warga TEKAN tombol di bawah untuk memutar roda undian!</p>
     <button class="btn-spin" id="btnSpinPeserta">🎡 TEKAN UNTUK PUTAR</button>
     <div class="result-box result-big" id="resultPeserta"></div>
@@ -94,8 +96,10 @@
     </div>
     <div class="warga-active hidden" id="grandWargaActive">🏆 Warga: <b id="grandWargaName"></b> — silakan TEKAN tombol!</div>
 
-    <canvas id="canvasGrand" width="560" height="560"></canvas>
-    <div class="pointer"></div>
+    <div class="wheel-wrap">
+      <canvas id="canvasGrand" width="560" height="560"></canvas>
+      <div class="pointer"></div>
+    </div>
     <p class="instruction">👉 Tekan tombol untuk memutar roda Undian Utama!</p>
     <button class="btn-spin btn-spin-grand" id="btnSpinGrand">🏆 PUTAR UNDIAN UTAMA</button>
     <div class="result-box result-big" id="resultGrand"></div>

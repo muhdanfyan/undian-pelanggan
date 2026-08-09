@@ -538,6 +538,8 @@ function initWheel(opts = {}) {
   wheelCbId = 'wheelCb' + Date.now();
   window[wheelCbId] = function () {
     stopTicking();
+    const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
+    if (wrap) wrap.classList.remove('spinning');
     const isZonkWarga = isWajibZonk(k.agen, state.area, state.activeWarga);
     const seg = wheel.getIndicatedSegment();
     const prizeName = seg ? seg.text : null;
@@ -585,14 +587,16 @@ function initWheel(opts = {}) {
     segments: segs,
     animation: {
       type: 'spinToStop',
-      duration: 6,
-      spins: 7 + Math.floor(Math.random() * 5),
-      easing: 'Power4.easeOut', // mulai cepat, melambat dramatis (didukung winwheel.min.js/TweenMax)
+      duration: 7.5,
+      spins: 10 + Math.floor(Math.random() * 6), // putaran maksimal 10-15x
+      easing: 'Power4.easeOut', // mulai cepat, berhenti lembut (didukung winwheel.min.js/TweenMax)
       callbackFinished: wheelCbId + '()',
     },
     pointerAngle: 90,
   });
   wheel.draw();
+  const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
+  if (wrap) wrap.classList.remove('spinning');
   updateCounter();
 }
 
@@ -607,9 +611,12 @@ function recordWinner(prizeName) {
 function spinWheel() {
   ensureAudio();
   wheel.stopAnimation(false);
-  wheel.animation.spins = 7 + Math.floor(Math.random() * 6);
+  wheel.animation.duration = 7.5;
+  wheel.animation.spins = 10 + Math.floor(Math.random() * 6);
   wheel.rotationAngle = 0;
   wheel.draw();
+  const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
+  if (wrap) { wrap.classList.remove('spinning'); void wrap.offsetWidth; wrap.classList.add('spinning'); }
   startTicking();
   wheel.startAnimation();
 }
@@ -765,6 +772,8 @@ function initGrandWheel(opts = {}) {
   grandCbId = 'grandCb' + Date.now();
   window[grandCbId] = function () {
     stopTicking();
+    const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
+    if (gwrap) gwrap.classList.remove('spinning');
     const seg = grandWheel.getIndicatedSegment();
     const prizeName = seg ? seg.text.replace(/^🏆\s*/, '') : null;
     if (!prizeName) return;
@@ -809,22 +818,28 @@ function initGrandWheel(opts = {}) {
     segments: segs,
     animation: {
       type: 'spinToStop',
-      duration: 6,
-      spins: 7 + Math.floor(Math.random() * 5),
+      duration: 7.5,
+      spins: 10 + Math.floor(Math.random() * 6), // putaran maksimal 10-15x
+      easing: 'Power4.easeOut',
       callbackFinished: grandCbId + '()',
     },
     pointerAngle: 90,
   });
   grandWheel.draw();
+  const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
+  if (gwrap) gwrap.classList.remove('spinning');
   updateGrandCounter();
 }
 
 function spinGrandWheel() {
   ensureAudio();
   grandWheel.stopAnimation(false);
-  grandWheel.animation.spins = 7 + Math.floor(Math.random() * 6);
+  grandWheel.animation.duration = 7.5;
+  grandWheel.animation.spins = 10 + Math.floor(Math.random() * 6);
   grandWheel.rotationAngle = 0;
   grandWheel.draw();
+  const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
+  if (gwrap) { gwrap.classList.remove('spinning'); void gwrap.offsetWidth; gwrap.classList.add('spinning'); }
   startTicking();
   grandWheel.startAnimation();
 }
