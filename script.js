@@ -552,14 +552,13 @@ function initWheel(opts = {}) {
       state.activeWarga = null;
       els.wargaActive.classList.add('hidden');
       updateCounter();
-      initWheel({ preserveResult: true });
       renderWargaPicker();
       els.btnSpinPeserta.disabled = false;
       state.spinning = false;
       return;
     }
     const prize = (AGEN_QUOTA[k.agen] || []).find(p => p.name === prizeName);
-    if (prize) {
+    if (prize && prize.qty > 0) {
       prize.qty--;   // kurangi stok hadiah
       saveState();   // simpan sisa stok segera setelah berkurang
       recordWinner(prizeName);
@@ -570,7 +569,6 @@ function initWheel(opts = {}) {
     state.activeWarga = null;
     els.wargaActive.classList.add('hidden');
     updateCounter();
-    initWheel({ preserveResult: true });   // rebuild roda — hadiah habis tidak muncul lagi
     renderWargaPicker();
     els.btnSpinPeserta.disabled = false;
     state.spinning = false;
@@ -786,7 +784,6 @@ function initGrandWheel(opts = {}) {
       els.grandWargaActive.classList.add('hidden');
       updateGrandCounter();
       renderGrandPicker();
-      initGrandWheel();
       els.btnSpinGrand.disabled = false;
       state.spinning = false;
       return;
@@ -803,7 +800,6 @@ function initGrandWheel(opts = {}) {
     els.grandWargaActive.classList.add('hidden');
     updateGrandCounter();
     renderGrandPicker();
-    initGrandWheel({ preserveResult: true }); // jangan timpa teks SELAMAT!
     els.btnSpinGrand.disabled = true; // sepeda sudah menang — tidak bisa spin lagi
     state.spinning = false;
   };
