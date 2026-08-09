@@ -358,7 +358,7 @@ function initWheel(opts = {}) {
   const k = KOORDINATOR[state.user];
   const prizes = getAvailablePrizes(k.agen);
   if (!prizes.length) {
-    els.resultPeserta.textContent = '✅ Semua hadiah sudah habis!' + (isWajibZonk(k.agen, state.area, state.activeWarga) ? ' (warga wajib ZONK)' : '');
+    els.resultPeserta.textContent = '✅ Semua hadiah sudah habis!';
     els.btnSpinPeserta.disabled = true;
     updateCounter();
     return;
