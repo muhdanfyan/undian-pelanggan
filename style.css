@@ -107,6 +107,8 @@ canvas { width:100%; height:auto; display:block; margin:0 auto; border-radius:50
   background:transparent; border:1px solid var(--muted); border-radius:999px; cursor:pointer;
 }
 .btn-ghost:hover { border-color:var(--neon-blue); color:var(--neon-blue); }
+.btn-tidak-hadir { margin-left:6px; border-color:#7f1d1d; color:#fca5a5; }
+.btn-tidak-hadir:hover { border-color:#ef4444; color:#ef4444; }
 .btn-primary {
   padding:12px 26px; font-size:16px; font-weight:700; color:#04101f;
   background: linear-gradient(135deg, var(--neon-yellow), var(--neon-red));

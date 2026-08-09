@@ -69,6 +69,7 @@ const state = {
   area: null,        // area yang sedang dikunjungi
   activeWarga: null, // warga yang sedang spin
   sudah: {},         // { agen: { area: [ {warga, hadiah} ] } } — sudah spin
+  tidakHadir: {},    // { agen: { area: [nama, ...] } } — warga ditandai TIDAK HADIR (door-to-door)
   spinning: false,
   grandMode: false,  // mode undian utama (sepeda listrik 17 Agu)
   grandWarga: null,  // { nama, agen } warga yang spin grand
@@ -87,6 +88,10 @@ const state = {
     const savedGrand = JSON.parse(localStorage.getItem('undian_grand_v1'));
     if (Array.isArray(savedGrand)) state.grandSudah = savedGrand;
   } catch (e) { /* data rusak — abaikan */ }
+  try {
+    const savedTidakHadir = JSON.parse(localStorage.getItem('undian_tidak_hadir_v1'));
+    if (savedTidakHadir && typeof savedTidakHadir === 'object') state.tidakHadir = savedTidakHadir;
+  } catch (e) { /* data rusak — abaikan */ }
 })();
 
 function saveState() {
@@ -99,6 +104,7 @@ function saveState() {
       })),
     }));
     localStorage.setItem('undian_grand_v1', JSON.stringify(state.grandSudah));
+    localStorage.setItem('undian_tidak_hadir_v1', JSON.stringify(state.tidakHadir));
   } catch (e) { /* localStorage tidak tersedia — abaikan */ }
 }
 
@@ -123,6 +129,7 @@ const els = {
   wargaSelect: $('wargaSelect'),
   wargaSearch: $('wargaSearch'),
   btnPickWarga: $('btnPickWarga'),
+  btnTidakHadir: $('btnTidakHadir'),
   wargaActive: $('wargaActive'),
   wargaName: $('wargaName'),
   canvasPeserta: $('canvasPeserta'),
@@ -219,11 +226,13 @@ $('loginForm').addEventListener('submit', (e) => {
 $('btnLogout').addEventListener('click', () => {
   state.user = null; state.area = null; state.activeWarga = null;
   state.sudah = {};
+  state.tidakHadir = {};
   // logout = reset undian: hapus semua data persistensi
   try {
     localStorage.removeItem('undian_sudah_v1');
     localStorage.removeItem('undian_qty_v1');
     localStorage.removeItem('undian_grand_v1');
+    localStorage.removeItem('undian_tidak_hadir_v1');
   } catch (e) { /* abaikan */ }
   els.loginScreen.classList.remove('hidden');
   els.appHeader.classList.add('hidden');
@@ -299,15 +308,19 @@ function getSudahList(agen, area) {
 function getBelumList(agen, area) {
   const semua = DATA_PESERTA[agen][area] || [];
   const sudahSet = new Set(getSudahList(agen, area).map(x => x.warga));
-  return semua.filter(n => !sudahSet.has(n));
+  const tidakHadirSet = new Set((state.tidakHadir[agen] && state.tidakHadir[agen][area]) || []);
+  return semua.filter(n => !sudahSet.has(n) && !tidakHadirSet.has(n));
 }
 
-/* Warga wajib zonk = tetap spin tapi dijamin TIDAK dapat hadiah */
+/* Warga wajib zonk = tetap spin tapi dijamin TIDAK dapat hadiah.
+   WAJIB_ZONK (daftar hitam) ATAU BELUM_BAYAR (belum transfer / tanda tanya) → dipaksa ZONK. */
 function isWajibZonk(agen, area, nama) {
   if (!nama) return false;
-  const list = (WAJIB_ZONK[agen] && WAJIB_ZONK[agen][area]) || [];
   const target = nama.trim().toUpperCase();
-  return list.some(n => n.trim().toUpperCase() === target);
+  const wajib = (WAJIB_ZONK[agen] && WAJIB_ZONK[agen][area]) || [];
+  const belumBayar = (BELUM_BAYAR[agen] && BELUM_BAYAR[agen][area]) || [];
+  return wajib.some(n => n.trim().toUpperCase() === target) ||
+         belumBayar.some(n => n.trim().toUpperCase() === target);
 }
 
 function selectArea(area) {
@@ -371,9 +384,40 @@ els.btnPickWarga.addEventListener('click', () => {
   initWheel(); // roda menyesuaikan: wajib zonk → roda ZONK
 });
 
+/* Tandai Tidak Hadir (door-to-door): warga dicoret dari daftar belum spin,
+   dipersist ke localStorage, tidak muncul di dropdown setelah refresh. */
+els.btnTidakHadir.addEventListener('click', () => {
+  const k = KOORDINATOR[state.user];
+  if (!k || !state.area) return;
+  const nama = state.activeWarga || els.wargaSelect.value;
+  if (!nama) {
+    els.resultPeserta.textContent = '⚠️ Pilih dulu warga yang tidak hadir.';
+    els.resultPeserta.classList.remove('win', 'zonk');
+    return;
+  }
+  if (!state.tidakHadir[k.agen]) state.tidakHadir[k.agen] = {};
+  if (!state.tidakHadir[k.agen][state.area]) state.tidakHadir[k.agen][state.area] = [];
+  if (!state.tidakHadir[k.agen][state.area].includes(nama)) {
+    state.tidakHadir[k.agen][state.area].push(nama);
+  }
+  saveState(); // persist tanda tidak hadir
+  // bersihkan warga aktif + refresh daftar (warga yang ditandai hilang dari dropdown)
+  state.activeWarga = null;
+  els.wargaActive.classList.add('hidden');
+  els.wargaSelect.value = '';
+  els.resultPeserta.textContent = `🚫 ${nama} ditandai TIDAK HADIR.`;
+  els.resultPeserta.classList.remove('win', 'zonk');
+  renderWargaPicker();
+  initWheel();
+});
+
 /* ---------- WHEEL (HADIAH) ---------- */
 let wheel = null;
 let wheelCbId = null;
+
+/* ZONK di roda biasa: 8 segmen, warna abu-abu bervariasi supaya tidak mencolok */
+const ZONK_SEGMENTS = 8;
+const ZONK_COLORS = ['#94a3b8', '#8896a8', '#7d8b9d', '#a3b0bf', '#8b98a8', '#9aa7b5', '#8493a4', '#99a6b4'];
 
 function getAvailablePrizes(agen) {
   return (AGEN_QUOTA[agen] || []).filter(p => p.qty > 0);
@@ -405,32 +449,64 @@ function initWheel(opts = {}) {
   if (!opts.preserveResult) clearResult();
   const k = KOORDINATOR[state.user];
   const prizes = getAvailablePrizes(k.agen);
-  if (!prizes.length) {
-    els.resultPeserta.textContent = '✅ Semua hadiah sudah habis!';
-    els.btnSpinPeserta.disabled = true;
-    updateCounter();
-    return;
-  }
 
-  // Roda SELALU normal (hadiah) — peserta wajib ZONK tetap melihat roda sama seperti
-  // peserta lain; hasilnya dipaksa ZONK di callback (zonkMode).
+  // Probabilitas menang DINAMIS = sisaHadiah / sisaPeserta (cap 0.85 agar tidak pernah 100%).
+  // Diterapkan lewat bobot segmen Winwheel (size = derajat busur).
+  const sisaHadiah = prizes.reduce((a, p) => a + p.qty, 0);
+  const sisaPeserta = getBelumList(k.agen, state.area).length;
+  const winProb = (sisaHadiah > 0 && sisaPeserta > 0) ? Math.min(sisaHadiah / sisaPeserta, 0.85) : 0;
+
   const fs = prizes.length > 12 ? 12 : prizes.length > 8 ? 14 : 17;
-  const segs = prizes.map((p, i) => ({
-    fillStyle: COLORS[i % COLORS.length],
-    text: p.name,
-    textFontSize: fs,
-    textFillStyle: '#ffffff',
-    textFontFamily: 'Rajdhani',
-    textFontWeight: 'bold',
-    textOrientation: 'horizontal',
-    textAlignment: 'center',
-  }));
-  // ZONK tetap opsi di roda — peserta wajib zonk dipaksa ZONK di callback
-  segs.push({
-    fillStyle: '#94a3b8', text: 'ZONK', textFontSize: fs, textFillStyle: '#ffffff',
-    textFontFamily: 'Rajdhani', textFontWeight: 'bold',
-    textOrientation: 'horizontal', textAlignment: 'center',
-  });
+  let segs;
+
+  if (winProb <= 0) {
+    // Hadiah habis (atau tidak ada peserta tersisa) → roda PENUH ZONK.
+    // Spin TETAP BISA — hasil pasti ZONK (callback sudah handle text 'ZONK').
+    segs = [];
+    for (let i = 0; i < ZONK_SEGMENTS; i++) {
+      segs.push({
+        fillStyle: ZONK_COLORS[i % ZONK_COLORS.length],
+        text: 'ZONK',
+        textFontSize: fs,
+        textFillStyle: '#ffffff',
+        textFontFamily: 'Rajdhani',
+        textFontWeight: 'bold',
+        textOrientation: 'horizontal',
+        textAlignment: 'center',
+        size: 360 / ZONK_SEGMENTS, // 45° per segmen → total 360°
+      });
+    }
+  } else {
+    // Roda normal: segmen hadiah (bobot 1) + 8 segmen ZONK berbobot.
+    // Bobot relatif (per tugas): zonkTotalSize = (nHadiah/winProb) - nHadiah
+    // → dikonversi ke derajat: hadiah = 360·winProb/nHadiah, ZONK = 360·(1-winProb)/8.
+    const prizeDeg = 360 * winProb / prizes.length;
+    const zonkDeg = 360 * (1 - winProb) / ZONK_SEGMENTS;
+    segs = prizes.map((p, i) => ({
+      fillStyle: COLORS[i % COLORS.length],
+      text: p.name,
+      textFontSize: fs,
+      textFillStyle: '#ffffff',
+      textFontFamily: 'Rajdhani',
+      textFontWeight: 'bold',
+      textOrientation: 'horizontal',
+      textAlignment: 'center',
+      size: prizeDeg,
+    }));
+    for (let i = 0; i < ZONK_SEGMENTS; i++) {
+      segs.push({
+        fillStyle: ZONK_COLORS[i % ZONK_COLORS.length],
+        text: 'ZONK',
+        textFontSize: fs,
+        textFillStyle: '#ffffff',
+        textFontFamily: 'Rajdhani',
+        textFontWeight: 'bold',
+        textOrientation: 'horizontal',
+        textAlignment: 'center',
+        size: zonkDeg,
+      });
+    }
+  }
 
   wheelCbId = 'wheelCb' + Date.now();
   window[wheelCbId] = function () {

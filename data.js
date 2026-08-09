@@ -11,8 +11,8 @@ const WAJIB_ZONK = {
     "WABOROBO": []
   },
   "NASRUN": {
-    "GONDA BARU": [],
-    "NGKARING-KARING": []
+    "GONDA BARU": ["JEJE", "MAFIA", "FARID", "FIKRI", "KASRIN", "ATI", "ZULL", "MULIADI", "RINDRA", "RUSLAN", "HAMIT"],
+    "NGKARING-KARING": ["DIAS", "FATA", "ADEL", "KOLAM", "WAHID", "MERI", "RIAN", "LETTER", "NGURAH", "DAT", "SUAS", "CHELSIA", "TINI", "POLIS"]
   },
   "IRVAN": {
     "PALABUSA, WANAJATI, KALIPU2, WONCO": [
@@ -30,6 +30,14 @@ const WAJIB_ZONK = {
       "MADING KALIPU2"
     ]
   }
+};
+
+// BELUM_BAYAR: pelanggan yang belum transfer / status tanda tanya — dianggap WAJIB ZONK.
+// isi: pelanggan yang belum transfer / tanda tanya — dianggap wajib ZONK.
+const BELUM_BAYAR = {
+  // "AGEN": {
+  //   "AREA": ["NAMA", ...]
+  // }
 };
 
 const DATA_PESERTA = {
