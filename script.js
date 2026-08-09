@@ -377,6 +377,12 @@ function initWheel(opts = {}) {
     textOrientation: 'horizontal',
     textAlignment: 'center',
   }));
+  // ZONK tetap opsi di roda — peserta wajib zonk dipaksa ZONK di callback
+  segs.push({
+    fillStyle: '#94a3b8', text: 'ZONK', textFontSize: fs, textFillStyle: '#ffffff',
+    textFontFamily: 'Rajdhani', textFontWeight: 'bold',
+    textOrientation: 'horizontal', textAlignment: 'center',
+  });
 
   wheelCbId = 'wheelCb' + Date.now();
   window[wheelCbId] = function () {
