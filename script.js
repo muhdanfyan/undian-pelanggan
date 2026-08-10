@@ -170,8 +170,10 @@ function ensureAudio() {
 let tickTimer = null;
 let tickLevel = 1;
 let tickFading = false;
+let tickStopTimer = null; // timeout untuk mulai fade SEBELUM roda berhenti
 function startTicking() {
   const ctx = ensureAudio(); if (!ctx) return;
+  if (tickStopTimer) { clearTimeout(tickStopTimer); tickStopTimer = null; }
   if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
   tickLevel = 1;
   tickFading = false;
@@ -228,6 +230,23 @@ function playFanfare() {
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
     o.connect(g); g.connect(ctx.destination);
     o.start(t); o.stop(t + 0.55);
+  });
+}
+
+function playZonkSound() {
+  const ctx = ensureAudio(); if (!ctx) return;
+  // "Womp womp" kalah: tiga nada menurun (Bb3 → G3 → Eb3)
+  const notes = [233.08, 196.0, 155.56];
+  notes.forEach((freq, i) => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = freq;
+    const t = ctx.currentTime + i * 0.28;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.14, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + 0.6);
   });
 }
 
@@ -580,6 +599,7 @@ function initWheel(opts = {}) {
       recordWinner('ZONK');
       els.resultPeserta.textContent = '😬 ZONK — belum beruntung!';
       els.resultPeserta.classList.add('zonk');
+      playZonkSound(); // 🔊 suara kalah
       state.activeWarga = null;
       els.wargaActive.classList.add('hidden');
       updateCounter();
@@ -647,6 +667,9 @@ function spinWheel() {
   const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
   if (wrap) { wrap.classList.remove('spinning'); void wrap.offsetWidth; wrap.classList.add('spinning'); }
   startTicking();
+  // 🔊 Fade tick MULAI sebelum roda berhenti: timeout 5.8s (roda berhenti 7.5s,
+  // fade selesai ±7.1s) → suara mati total & terfade SEBELUM roda berhenti.
+  tickStopTimer = setTimeout(() => { tickStopTimer = null; stopTicking(); }, 5800);
   wheel.startAnimation();
 }
 
@@ -811,6 +834,7 @@ function initGrandWheel(opts = {}) {
       saveState(); // simpan riwayat grand (ZONK)
       els.resultGrand.textContent = '😬 ZONK — belum beruntung!';
       els.resultGrand.classList.add('zonk');
+      playZonkSound(); // 🔊 suara kalah
       state.grandWarga = null;
       els.grandWargaActive.classList.add('hidden');
       updateGrandCounter();
@@ -868,6 +892,8 @@ function spinGrandWheel() {
   const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
   if (gwrap) { gwrap.classList.remove('spinning'); void gwrap.offsetWidth; gwrap.classList.add('spinning'); }
   startTicking();
+  // 🔊 Fade tick MULAI sebelum roda berhenti (sama seperti roda biasa).
+  tickStopTimer = setTimeout(() => { tickStopTimer = null; stopTicking(); }, 5800);
   grandWheel.startAnimation();
 }
 
