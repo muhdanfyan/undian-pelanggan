@@ -125,7 +125,7 @@ canvas { width:100%; height:auto; display:block; margin:0 auto; border-radius:50
   100% { transform: scale(1); }
 }
 
-/* ===== JARUM PREMIUM — BESAR, GLOW KUAT, ADA HUB BULAT ===== */
+/* ===== JARUM — TANPA HUB BULAT, TANPA GLOW BESAR (glow menyorot segmen) ===== */
 .pointer {
   position:absolute; top:7px; left:50%; transform:translateX(-50%);
   width:0; height:0; z-index:9;
@@ -136,31 +136,20 @@ canvas { width:100%; height:auto; display:block; margin:0 auto; border-radius:50
     drop-shadow(-3px 0 0 rgba(13,21,38,.9))
     drop-shadow(3px 0 0 rgba(13,21,38,.9))
     drop-shadow(0 -3px 0 rgba(13,21,38,.9))
-    drop-shadow(0 6px 12px rgba(0,0,0,.65))
-    drop-shadow(0 0 16px rgba(255,209,102,.95));
+    drop-shadow(0 6px 12px rgba(0,0,0,.65));
   animation: pointerPulse 1.6s ease-in-out infinite;
-}
-/* Hub bulat emas di pangkal jarum (pin roulette) */
-.pointer::before {
-  content:''; position:absolute; top:-20px; left:-20px;
-  width:40px; height:40px; border-radius:50%;
-  background: radial-gradient(circle at 35% 30%, #fff3c4, #ffd166 48%, #d98f12 100%);
-  border:3px solid #0d1526;
-  box-shadow: 0 0 20px rgba(255,209,102,1), inset 0 -4px 8px rgba(0,0,0,.4);
 }
 @keyframes pointerPulse {
   0%,100% { filter:
     drop-shadow(-3px 0 0 rgba(13,21,38,.9))
     drop-shadow(3px 0 0 rgba(13,21,38,.9))
     drop-shadow(0 -3px 0 rgba(13,21,38,.9))
-    drop-shadow(0 6px 12px rgba(0,0,0,.65))
-    drop-shadow(0 0 12px rgba(255,209,102,.8)); }
+    drop-shadow(0 6px 12px rgba(0,0,0,.65)); }
   50% { filter:
     drop-shadow(-3px 0 0 rgba(13,21,38,.9))
     drop-shadow(3px 0 0 rgba(13,21,38,.9))
     drop-shadow(0 -3px 0 rgba(13,21,38,.9))
-    drop-shadow(0 6px 12px rgba(0,0,0,.65))
-    drop-shadow(0 0 30px rgba(255,209,102,1)); }
+    drop-shadow(0 6px 12px rgba(0,0,0,.65)); }
 }
 
 /* ===== BUTTONS ===== */

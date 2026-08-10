@@ -662,6 +662,21 @@ function spinWheel() {
   wheel.stopAnimation(false);
   wheel.animation.duration = 7.5;
   wheel.animation.spins = 10 + Math.floor(Math.random() * 6);
+  // 🎯 Warga WAJIB ZONK: roda tetap berputar normal, tapi diarahkan berhenti
+  // di segmen ZONK (stopAngle = tengah segmen ZONK acak) — hasil konsisten visual.
+  const k = KOORDINATOR[state.user];
+  if (isWajibZonk(k.agen, state.area, state.activeWarga)) {
+    const zonkList = [];
+    for (let i = 1; i < wheel.segments.length; i++) {
+      if (wheel.segments[i].text === 'ZONK') zonkList.push(wheel.segments[i]);
+    }
+    if (zonkList.length) {
+      const seg = zonkList[Math.floor(Math.random() * zonkList.length)];
+      wheel.animation.stopAngle = (seg.startAngle + seg.endAngle) / 2;
+    }
+  } else {
+    wheel.animation.stopAngle = null; // undian normal — berhenti acak
+  }
   wheel.rotationAngle = 0;
   wheel.draw();
   const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
