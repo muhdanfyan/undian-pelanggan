@@ -590,12 +590,13 @@ function initWheel(opts = {}) {
     stopTicking();
     const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
     if (wrap) wrap.classList.remove('spinning');
-    const isZonkWarga = isWajibZonk(k.agen, state.area, state.activeWarga);
     const seg = wheel.getIndicatedSegment();
     const prizeName = seg ? seg.text : null;
     if (!prizeName) return;
-    // Peserta wajib ZONK: meskipun jarum menunjuk hadiah, hasil DIPAKSA ZONK
-    if (prizeName === 'ZONK' || isZonkWarga) {
+    // Hasil = SEGMEN YANG DITUNJUK JARUM (tanda atas). Warga wajib ZONK
+    // diarahkan berhenti di segmen ZONK via stopAngle di spinWheel() —
+    // TIDAK ada pemaksaan hasil di callback (biar visual = hasil).
+    if (prizeName === 'ZONK') {
       recordWinner('ZONK');
       els.resultPeserta.textContent = '😬 ZONK — belum beruntung!';
       els.resultPeserta.classList.add('zonk');
@@ -613,10 +614,16 @@ function initWheel(opts = {}) {
       prize.qty--;   // kurangi stok hadiah
       saveState();   // simpan sisa stok segera setelah berkurang
       recordWinner(prizeName);
+      els.resultPeserta.textContent = '🎁 ' + prizeName;
+      els.resultPeserta.classList.add('win');
+      playFanfare(); fireConfetti();
+    } else {
+      // Jarum menunjuk hadiah tapi stok sudah habis → jujur ZONK (tidak menang).
+      recordWinner('ZONK');
+      els.resultPeserta.textContent = '😬 ZONK — belum beruntung!';
+      els.resultPeserta.classList.add('zonk');
+      playZonkSound();
     }
-    els.resultPeserta.textContent = '🎁 ' + prizeName;
-    els.resultPeserta.classList.add('win');
-    playFanfare(); fireConfetti();
     state.activeWarga = null;
     els.wargaActive.classList.add('hidden');
     updateCounter();
