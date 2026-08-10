@@ -598,7 +598,7 @@ function initWheel(opts = {}) {
     // TIDAK ada pemaksaan hasil di callback (biar visual = hasil).
     if (prizeName === 'ZONK') {
       recordWinner('ZONK');
-      els.resultPeserta.textContent = '😬 ZONK — belum beruntung!';
+      els.resultPeserta.textContent = '😬 ' + state.activeWarga + ' — ZONK, belum beruntung!';
       els.resultPeserta.classList.add('zonk');
       playZonkSound(); // 🔊 suara kalah
       state.activeWarga = null;
@@ -614,13 +614,13 @@ function initWheel(opts = {}) {
       prize.qty--;   // kurangi stok hadiah
       saveState();   // simpan sisa stok segera setelah berkurang
       recordWinner(prizeName);
-      els.resultPeserta.textContent = '🎁 ' + prizeName;
+      els.resultPeserta.textContent = '🎁 ' + state.activeWarga + ' mendapatkan ' + prizeName + '!';
       els.resultPeserta.classList.add('win');
       playFanfare(); fireConfetti();
     } else {
       // Jarum menunjuk hadiah tapi stok sudah habis → jujur ZONK (tidak menang).
       recordWinner('ZONK');
-      els.resultPeserta.textContent = '😬 ZONK — belum beruntung!';
+      els.resultPeserta.textContent = '😬 ' + state.activeWarga + ' — ZONK, belum beruntung!';
       els.resultPeserta.classList.add('zonk');
       playZonkSound();
     }
