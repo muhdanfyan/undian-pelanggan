@@ -648,7 +648,7 @@ function initWheel(opts = {}) {
       easing: 'Power4.easeOut', // mulai cepat, berhenti lembut (didukung winwheel.min.js/TweenMax)
       callbackFinished: wheelCbId + '()',
     },
-    pointerAngle: 90,
+    pointerAngle: 0,
   });
   wheel.draw();
   const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
@@ -896,7 +896,7 @@ function initGrandWheel(opts = {}) {
       easing: 'Power4.easeOut',
       callbackFinished: grandCbId + '()',
     },
-    pointerAngle: 90,
+    pointerAngle: 0,
   });
   grandWheel.draw();
   const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
