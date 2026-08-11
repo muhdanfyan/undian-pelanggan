@@ -571,6 +571,9 @@ function initWheel(opts = {}) {
     const byName = {};
     unitList.forEach(nm => { (byName[nm] = byName[nm] || []).push(nm); });
     const names = Object.keys(byName);
+    // Warna per NAMA hadiah — semua unit senama SEWARNA (mudah dikenali, konsisten).
+    const nameColor = {};
+    names.forEach((nm, i) => { nameColor[nm] = COLORS[i % COLORS.length]; });
     // Urutkan nama berdasarkan jumlah unit DESC — kelompok besar diletakkan lebih dulu
     // supaya slot antar-nya masih cukup (pigeonhole: kalau nHad > totalSeg/2,
     // pasti ada yang berdampingan — ini batas matematis, diusahakan seminimal mungkin).
@@ -594,7 +597,7 @@ function initWheel(opts = {}) {
       }
       used.add(pos);
       segs[pos] = {
-        fillStyle: COLORS[u % COLORS.length],
+        fillStyle: nameColor[orderedUnits[u]],
         text: orderedUnits[u],
         textFontSize: fs,
         textFillStyle: '#ffffff',
