@@ -391,6 +391,25 @@ function isWajibZonk(agen, area, nama) {
          belumBayar.some(n => n.trim().toUpperCase() === target);
 }
 
+/* Grand prize: cek ZONK GLOBAL lintas agen — nama yang wajib ZONK di agen MANAPUN
+   tidak boleh menang Sepeda Listrik (mencegah lolos via entri agen lain). */
+function isWajibZonkGrand(agen, nama) {
+  if (!nama) return false;
+  const target = nama.trim().toUpperCase();
+  // Cek semua agen × semua area (WAJIB_ZONK + BELUM_BAYAR)
+  for (const a of Object.keys(WAJIB_ZONK)) {
+    for (const ar of Object.keys(WAJIB_ZONK[a] || {})) {
+      if ((WAJIB_ZONK[a][ar] || []).some(n => n.trim().toUpperCase() === target)) return true;
+    }
+  }
+  for (const a of Object.keys(BELUM_BAYAR)) {
+    for (const ar of Object.keys(BELUM_BAYAR[a] || {})) {
+      if ((BELUM_BAYAR[a][ar] || []).some(n => n.trim().toUpperCase() === target)) return true;
+    }
+  }
+  return false;
+}
+
 function selectArea(area) {
   state.area = area;
   state.activeWarga = null;
@@ -899,7 +918,10 @@ function initGrandWheel(opts = {}) {
     const seg = grandWheel.getIndicatedSegment();
     const prizeName = seg ? seg.text.replace(/^🏆\s*/, '') : null;
     if (!prizeName) return;
-    if (prizeName === 'ZONK') {
+    // 🛡️ Safety net GRAND: warga wajib ZONK global — hasil dipaksa ZONK meski jarum
+    // sempat menunjuk Sepeda Listrik (anti-bocor jika stopAngle gagal/off).
+    const isWajibKalahCb = isWajibZonkGrand(state.grandWarga ? state.grandWarga.agen : null, state.grandWarga ? state.grandWarga.nama : null);
+    if (prizeName === 'ZONK' || isWajibKalahCb) {
       state.grandSudah.push({ warga: state.grandWarga.nama, agen: state.grandWarga.agen, hadiah: 'ZONK' });
       saveState(); // simpan riwayat grand (ZONK)
       els.resultGrand.textContent = '😬 ZONK — coba lagi tahun depan!';
@@ -963,7 +985,9 @@ function spinGrandWheel() {
   const sisaGrand = getBelumGrand().length;
   const gpLeft = GRAND_PRIZE.reduce((a, p) => a + p.qty, 0);
   const winProb = (gpLeft > 0 && sisaGrand > 0) ? Math.min(1 / sisaGrand, 0.85) : 0;
-  const isMenang = gpLeft > 0 && (Math.random() < winProb);
+  // 🛡️ FIX GRAND: warga wajib ZONK (di agennya sendiri ATAU agen lain) TIDAK boleh menang Sepeda Listrik.
+  const isWajibKalahGrand = isWajibZonkGrand(state.grandWarga ? state.grandWarga.agen : null, state.grandWarga ? state.grandWarga.nama : null);
+  const isMenang = !isWajibKalahGrand && gpLeft > 0 && (Math.random() < winProb);
 
   let targetSegList = [];
   for (let i = 1; i < grandWheel.segments.length; i++) {
