@@ -616,7 +616,7 @@ function initWheel(opts = {}) {
     // TIDAK ada pemaksaan hasil di callback (biar visual = hasil).
     if (prizeName === 'ZONK' || seg.zonk) {
       recordWinner('ZONK');
-      els.resultPeserta.textContent = '😬 ' + state.activeWarga + ' — ZONK, belum beruntung!';
+      els.resultPeserta.textContent = '😬 ' + state.activeWarga + ' — ZONK, coba lagi tahun depan!';
       els.resultPeserta.classList.add('zonk');
       playZonkSound(); // 🔊 suara kalah
       state.activeWarga = null;
@@ -638,7 +638,7 @@ function initWheel(opts = {}) {
     } else {
       // Jarum menunjuk hadiah tapi stok sudah habis → jujur ZONK (tidak menang).
       recordWinner('ZONK');
-      els.resultPeserta.textContent = '😬 ' + state.activeWarga + ' — ZONK, belum beruntung!';
+      els.resultPeserta.textContent = '😬 ' + state.activeWarga + ' — ZONK, coba lagi tahun depan!';
       els.resultPeserta.classList.add('zonk');
       playZonkSound();
     }
@@ -902,7 +902,7 @@ function initGrandWheel(opts = {}) {
     if (prizeName === 'ZONK') {
       state.grandSudah.push({ warga: state.grandWarga.nama, agen: state.grandWarga.agen, hadiah: 'ZONK' });
       saveState(); // simpan riwayat grand (ZONK)
-      els.resultGrand.textContent = '😬 ZONK — belum beruntung!';
+      els.resultGrand.textContent = '😬 ZONK — coba lagi tahun depan!';
       els.resultGrand.classList.add('zonk');
       playZonkSound(); // 🔊 suara kalah
       state.grandWarga = null;
