@@ -532,7 +532,7 @@ function initWheel(opts = {}) {
   prizes.forEach(p => { for (let i = 0; i < p.qty; i++) unitList.push(p.name); });
   const nHad = unitList.length;
 
-  let segs;
+  let segs = [];
   if (nHad <= 0) {
     // Hadiah habis → roda 12 segmen ZONK penuh. Spin TETAP BISA — hasil pasti ZONK.
     const emptySegSize = 360 / 12;
