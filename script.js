@@ -483,9 +483,9 @@ els.btnTidakHadir.addEventListener('click', () => {
 let wheel = null;
 let wheelCbId = null;
 
-/* ZONK di roda biasa: 8 segmen, warna abu-abu bervariasi supaya tidak mencolok */
+/* ZONK di roda biasa: segmen abu-abu slate selang-seling (50:50 dengan hadiah) */
 const ZONK_SEGMENTS = 8;
-const ZONK_COLORS = ['#c084fc', '#f472b6', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#2dd4bf', '#a3e635'];
+const ZONK_COLORS = ['#cbd5e1', '#94a3b8']; // abu-abu slate — ZONK tetap abu-abu sesuai arahan Bang
 
 function getAvailablePrizes(agen) {
   return (AGEN_QUOTA[agen] || []).filter(p => p.qty > 0);
@@ -524,60 +524,46 @@ function initWheel(opts = {}) {
   const sisaPeserta = Object.keys(DATA_PESERTA[k.agen] || {}).reduce((a, ar) => a + getBelumList(k.agen, ar).length, 0);
   const winProb = (sisaHadiah > 0 && sisaPeserta > 0) ? Math.min(sisaHadiah / sisaPeserta, 0.85) : 0;
 
-  // FONT: semakin banyak segmen, semakin kecil teks (konsisten pola lama).
-  const totalSeg = Math.max(sisaPeserta, 1); // total potongan roda = jumlah peserta tersisa
-  const fs = totalSeg > 120 ? 9 : totalSeg > 80 ? 11 : totalSeg > 40 ? 13 : 17;
-
-  // SETIAP UNIT HADIAH = 1 SEGMEN (bukan per jenis digabung).
-  // Contoh ALDIN: Setrika 1, Kipas 1, Jam 1, Kaos 1, Mugs 3 → 7 segmen hadiah.
+  // FONT: semakin banyak segmen, semakin kecil teks.
+  // DESAIN FIFTY-FIFTY: N_had segmen hadiah + N_had segmen ZONK = 2×N_had total.
+  // Visual 50:50 (hadiah berwarna 180°, ZONK abu-abu 180°), peluang menang TETAP
+  // dihitung dari sisaHadiah/sisaPeserta (bukan 50%) — diarahkan via stopAngle di spinWheel().
   const unitList = [];
   prizes.forEach(p => { for (let i = 0; i < p.qty; i++) unitList.push(p.name); });
-
-  // Semua segmen UKURAN SAMA BESAR = 360 / totalSeg.
-  // Rasio peluang = jumlah segmen hadiah / total segmen = sisaHadiah / sisaPeserta (tepat).
-  const segSize = 360 / totalSeg;
   const nHad = unitList.length;
-  const nZonk = Math.max(totalSeg - nHad, 1);
 
   let segs;
-
   if (nHad <= 0) {
-    // Hadiah habis → roda PENUH ZONK. Spin TETAP BISA — hasil pasti ZONK.
-    segs = [];
-    for (let i = 0; i < nZonk; i++) {
+    // Hadiah habis → roda 12 segmen ZONK penuh. Spin TETAP BISA — hasil pasti ZONK.
+    const emptySegSize = 360 / 12;
+    for (let i = 0; i < 12; i++) {
       segs.push({
         fillStyle: ZONK_COLORS[i % ZONK_COLORS.length],
-        text: '',
+        text: 'ZONK',
         zonk: true,
-        textFontSize: fs,
+        textFontSize: 13,
         textFillStyle: '#ffffff',
         textFontFamily: 'Rajdhani',
         textFontWeight: 'bold',
         textOrientation: 'horizontal',
         textAlignment: 'center',
-        size: segSize,
+        size: emptySegSize,
       });
     }
   } else {
-    // Bangun slot: hadiah di-interleave merata, hadiah SENAMA TIDAK berdampingan.
-    segs = new Array(totalSeg);
-    // Posisi hadiah ke-i tersebar merata di keliling roda.
-    const posHad = [];
-    for (let i = 0; i < nHad; i++) {
-      posHad.push(Math.round(i * totalSeg / nHad) % totalSeg);
-    }
-    // Anti-berdampingan: urutkan hadiah sehingga nama yang sama tidak bersebelahan.
-    // Kelompokkan unit per nama, lalu selang-seling antar kelompok (round-robin).
+    // Fifty-Fifty: nHad segmen Hadiah + nHad segmen ZONK, selang-seling 1:1.
+    const totalSeg = nHad * 2;
+    const segSize = 360 / totalSeg;
+    const fs = totalSeg > 30 ? 10 : totalSeg > 20 ? 12 : 14;
+
+    // Warna per NAMA hadiah — semua unit senama SEWARNA (konsisten, mudah dikenali).
     const byName = {};
     unitList.forEach(nm => { (byName[nm] = byName[nm] || []).push(nm); });
-    const names = Object.keys(byName);
-    // Warna per NAMA hadiah — semua unit senama SEWARNA (mudah dikenali, konsisten).
+    const names = Object.keys(byName).sort((a, b) => byName[b].length - byName[a].length);
     const nameColor = {};
     names.forEach((nm, i) => { nameColor[nm] = COLORS[i % COLORS.length]; });
-    // Urutkan nama berdasarkan jumlah unit DESC — kelompok besar diletakkan lebih dulu
-    // supaya slot antar-nya masih cukup (pigeonhole: kalau nHad > totalSeg/2,
-    // pasti ada yang berdampingan — ini batas matematis, diusahakan seminimal mungkin).
-    names.sort((a, b) => byName[b].length - byName[a].length);
+
+    // Anti-berdampingan untuk hadiah senama: round-robin antar kelompok.
     const orderedUnits = [];
     let maxLen = Math.max(...names.map(n => byName[n].length));
     for (let r = 0; r < maxLen; r++) {
@@ -585,20 +571,14 @@ function initWheel(opts = {}) {
         if (byName[nm][r] !== undefined) orderedUnits.push(byName[nm][r]);
       });
     }
-    // Tempatkan unit ke slot posHad secara round-robin, geser bila slot sudah terisi.
-    const used = new Set();
-    for (let u = 0; u < orderedUnits.length; u++) {
-      let pos = posHad[u % posHad.length];
-      // cari slot kosong terdekat dari pos awal
-      let attempts = 0;
-      while (used.has(pos) && attempts < totalSeg) {
-        pos = (pos + 1) % totalSeg;
-        attempts++;
-      }
-      used.add(pos);
-      segs[pos] = {
-        fillStyle: nameColor[orderedUnits[u]],
-        text: orderedUnits[u],
+
+    // Selang-seling: [Hadiah, ZONK, Hadiah, ZONK, ...] — visual 50:50, hadiah tidak pernah berdampingan.
+    segs = [];
+    for (let i = 0; i < nHad; i++) {
+      segs.push({
+        fillStyle: nameColor[orderedUnits[i]],
+        text: orderedUnits[i],
+        zonk: false,
         textFontSize: fs,
         textFillStyle: '#ffffff',
         textFontFamily: 'Rajdhani',
@@ -606,25 +586,19 @@ function initWheel(opts = {}) {
         textOrientation: 'horizontal',
         textAlignment: 'center',
         size: segSize,
-      };
-    }
-    // Slot kosong sisanya = ZONK (tanpa teks — biar hadiah menonjol, warna abu sinyal kosong).
-    let zi = 0;
-    for (let i = 0; i < totalSeg; i++) {
-      if (!used.has(i)) {
-        segs[i] = {
-          fillStyle: ZONK_COLORS[zi++ % ZONK_COLORS.length],
-          text: '',
-          zonk: true,
-          textFontSize: fs,
-          textFillStyle: '#ffffff',
-          textFontFamily: 'Rajdhani',
-          textFontWeight: 'bold',
-          textOrientation: 'horizontal',
-          textAlignment: 'center',
-          size: segSize,
-        };
-      }
+      });
+      segs.push({
+        fillStyle: ZONK_COLORS[i % ZONK_COLORS.length],
+        text: 'ZONK',
+        zonk: true,
+        textFontSize: fs,
+        textFillStyle: '#64748b',
+        textFontFamily: 'Rajdhani',
+        textFontWeight: 'bold',
+        textOrientation: 'horizontal',
+        textAlignment: 'center',
+        size: segSize,
+      });
     }
   }
 
@@ -635,8 +609,7 @@ function initWheel(opts = {}) {
     if (wrap) wrap.classList.remove('spinning');
     const seg = wheel.getIndicatedSegment();
     const prizeName = seg ? seg.text : null;
-    // Segmen ZONK punya text kosong (''); tanpa pengecekan seg.zonk, callback
-    // akan return duluan di guard ini dan hasil ZONK tidak pernah tercatat.
+    // Segmen ZONK punya text 'ZONK' (+ flag zonk:true) — guard aman untuk keduanya.
     if (!prizeName && !(seg && seg.zonk)) return;
     // Hasil = SEGMEN YANG DITUNJUK JARUM (tanda atas). Warga wajib ZONK
     // diarahkan berhenti di segmen ZONK via stopAngle di spinWheel() —
@@ -714,21 +687,42 @@ function spinWheel() {
   wheel.stopAnimation(false);
   wheel.animation.duration = 7.5;
   wheel.animation.spins = 10 + Math.floor(Math.random() * 6);
-  // 🎯 Warga WAJIB ZONK: roda tetap berputar normal, tapi diarahkan berhenti
-  // di segmen ZONK (stopAngle = tengah segmen ZONK acak) — hasil konsisten visual.
+
+  // 🎯 DESAIN FIFTY-FIFTY: roda visual 50:50, tapi peluang menang TETAP = sisaHadiah/sisaPeserta.
+  // Putusan menang/kalah di-skenario DULU (Math.random() < winProb), lalu stopAngle diarahkan
+  // ke segmen hadiah (menang) atau segmen ZONK (kalah) — jarum berhenti di segmen itu,
+  // callback membaca hasil dari segmen yang ditunjuk (visual = hasil, tanpa pemaksaan).
   const k = KOORDINATOR[state.user];
-  if (isWajibZonk(k.agen, state.area, state.activeWarga)) {
-    const zonkList = [];
-    for (let i = 1; i < wheel.segments.length; i++) {
-      if (wheel.segments[i].text === 'ZONK' || wheel.segments[i].zonk) zonkList.push(wheel.segments[i]);
+  const prizes = getAvailablePrizes(k.agen);
+  const sisaHadiah = prizes.reduce((a, p) => a + p.qty, 0);
+  const sisaPeserta = Object.keys(DATA_PESERTA[k.agen] || {}).reduce((a, ar) => a + getBelumList(k.agen, ar).length, 0);
+  const winProb = (sisaHadiah > 0 && sisaPeserta > 0) ? Math.min(sisaHadiah / sisaPeserta, 0.85) : 0;
+
+  const isWajibKalah = isWajibZonk(k.agen, state.area, state.activeWarga);
+  const isMenang = !isWajibKalah && sisaHadiah > 0 && (Math.random() < winProb);
+
+  let targetSegList = [];
+  // Winwheel segments 1-indexed (index 0 = dummy).
+  for (let i = 1; i < wheel.segments.length; i++) {
+    const seg = wheel.segments[i];
+    if (isMenang) {
+      if (!seg.zonk && seg.text !== 'ZONK') {
+        const p = prizes.find(x => x.name === seg.text);
+        if (p && p.qty > 0) targetSegList.push(seg);
+      }
+    } else {
+      if (seg.zonk || seg.text === 'ZONK') targetSegList.push(seg);
     }
-    if (zonkList.length) {
-      const seg = zonkList[Math.floor(Math.random() * zonkList.length)];
-      wheel.animation.stopAngle = (seg.startAngle + seg.endAngle) / 2;
-    }
-  } else {
-    wheel.animation.stopAngle = null; // undian normal — berhenti acak
   }
+  // Fallback: kalau tidak ada kandidat (mis. stok berubah), putar acak penuh.
+  if (!targetSegList.length) targetSegList = wheel.segments.slice(1);
+
+  const chosenSeg = targetSegList[Math.floor(Math.random() * targetSegList.length)];
+  // Jitter kecil di dalam batas segmen (margin 30% dari tepi) supaya tidak selalu mentok tengah.
+  const segSpan = chosenSeg.endAngle - chosenSeg.startAngle;
+  const jitter = (Math.random() - 0.5) * (segSpan * 0.6);
+  wheel.animation.stopAngle = ((chosenSeg.startAngle + chosenSeg.endAngle) / 2) + jitter;
+
   wheel.rotationAngle = 0;
   wheel.draw();
   const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
@@ -810,6 +804,11 @@ function renderGrandPicker() {
   updateGrandCounter();
 }
 
+function getBelumGrand() {
+  const sudahSet = new Set(state.grandSudah.map(x => x.warga + '|' + x.agen));
+  return getAllWarga().filter(r => !sudahSet.has(r.nama + '|' + r.agen));
+}
+
 function applyGrandFilter() {
   const q = (els.grandSearch ? els.grandSearch.value : '').trim().toLowerCase();
   const filtered = q ? _grandAll.filter(r => r.nama.toLowerCase().includes(q)) : _grandAll;
@@ -850,28 +849,32 @@ function getGrandSegments() {
   const gp = GRAND_PRIZE.filter(p => p.qty > 0);
   const segs = [];
   if (gp.length) {
-    segs.push({
-      fillStyle: '#ffd700',
-      text: '🏆 Sepeda Listrik',
-      textFontSize: 22,
-      textFillStyle: '#5b4a00',
-      textFontFamily: 'Rajdhani',
-      textFontWeight: 'bold',
-      textOrientation: 'horizontal',
-      textAlignment: 'center',
-    });
-  }
-  for (let i = 0; i < GRAND_ZONK_SEGMENTS; i++) {
-    segs.push({
-      fillStyle: '#374151',
-      text: 'ZONK',
-      textFontSize: 30,
-      textFillStyle: '#ffffff',
-      textFontFamily: 'Rajdhani',
-      textFontWeight: 'bold',
-      textOrientation: 'horizontal',
-      textAlignment: 'center',
-    });
+    // FIFTY-FIFTY grand: selang-seling [Sepeda Listrik, ZONK, Sepeda Listrik, ZONK] — visual 50:50.
+    const segSize = 90;
+    for (let i = 0; i < 2; i++) {
+      segs.push({
+        fillStyle: '#ffd700',
+        text: '🏆 Sepeda Listrik',
+        textFontSize: 22,
+        textFillStyle: '#5b4a00',
+        textFontFamily: 'Rajdhani',
+        textFontWeight: 'bold',
+        textOrientation: 'horizontal',
+        textAlignment: 'center',
+        size: segSize,
+      });
+      segs.push({
+        fillStyle: '#94a3b8',
+        text: 'ZONK',
+        textFontSize: 30,
+        textFillStyle: '#ffffff',
+        textFontFamily: 'Rajdhani',
+        textFontWeight: 'bold',
+        textOrientation: 'horizontal',
+        textAlignment: 'center',
+        size: segSize,
+      });
+    }
   }
   return segs;
 }
@@ -954,6 +957,29 @@ function spinGrandWheel() {
   grandWheel.stopAnimation(false);
   grandWheel.animation.duration = 7.5;
   grandWheel.animation.spins = 10 + Math.floor(Math.random() * 6);
+
+  // 🎯 GRAND FIFTY-FIFTY: visual 50:50, tapi peluang menang TETAP = 1/sisaPesertaGrand.
+  // Putusan menang/kalah di-skenario dulu, lalu stopAngle diarahkan ke segmen target.
+  const sisaGrand = getBelumGrand().length;
+  const gpLeft = GRAND_PRIZE.reduce((a, p) => a + p.qty, 0);
+  const winProb = (gpLeft > 0 && sisaGrand > 0) ? Math.min(1 / sisaGrand, 0.85) : 0;
+  const isMenang = gpLeft > 0 && (Math.random() < winProb);
+
+  let targetSegList = [];
+  for (let i = 1; i < grandWheel.segments.length; i++) {
+    const seg = grandWheel.segments[i];
+    if (isMenang) {
+      if (!seg.zonk && seg.text !== 'ZONK') targetSegList.push(seg);
+    } else {
+      if (seg.zonk || seg.text === 'ZONK') targetSegList.push(seg);
+    }
+  }
+  if (!targetSegList.length) targetSegList = grandWheel.segments.slice(1);
+  const chosenSeg = targetSegList[Math.floor(Math.random() * targetSegList.length)];
+  const segSpan = chosenSeg.endAngle - chosenSeg.startAngle;
+  const jitter = (Math.random() - 0.5) * (segSpan * 0.6);
+  grandWheel.animation.stopAngle = ((chosenSeg.startAngle + chosenSeg.endAngle) / 2) + jitter;
+
   grandWheel.rotationAngle = 0;
   grandWheel.draw();
   const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
