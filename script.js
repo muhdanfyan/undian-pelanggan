@@ -338,12 +338,13 @@ function renderAreaPicker() {
   const areas = Object.keys(agenData);
   els.areaGrid.innerHTML = '';
 
-  // Tombol undian utama (grand) — muncul 17 Agu atau saat test ?grand=1
-  if (grandModeEnabled()) {
+  // 🚲 Halaman khusus UNDIAN SEPEDA LISTRIK — selalu tampil untuk semua koordinator.
+  // Menggabung SEMUA warga dari SEMUA koordinator dalam satu roda undian.
+  {
     const btnGrand = document.createElement('button');
     btnGrand.className = 'area-card area-card-grand';
     const gpLeft = GRAND_PRIZE.reduce((a, p) => a + p.qty, 0);
-    btnGrand.innerHTML = `<span class="area-name">🎁 UNDIAN UTAMA</span><span class="area-count">Sepeda Listrik · ${gpLeft ? 'tersedia' : 'SUDAH DIMENANGKAN'} · terpusat semua warga</span>`;
+    btnGrand.innerHTML = `<span class="area-name">🚲 UNDIAN SEPEDA LISTRIK</span><span class="area-count">Hadiah utama · ${gpLeft ? 'tersedia' : 'SUDAH DIMENANGKAN'} · gabung semua koordinator & warga</span>`;
     btnGrand.addEventListener('click', () => openGrand());
     els.areaGrid.appendChild(btnGrand);
   }
