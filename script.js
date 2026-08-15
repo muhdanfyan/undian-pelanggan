@@ -20,11 +20,12 @@ const KOORDINATOR = {
 const PRIZE_TOTAL = 62; // 61 hadiah biasa + 1 sepeda listrik (grand)
 const AGEN_QUOTA = {
   ALDIN: [
+    { name: 'Rice Cooker', qty: 1 },
     { name: 'Setrika', qty: 1 },
     { name: 'Kipas Angin Mini', qty: 1 },
     { name: 'Jam Dinding', qty: 1 },
     { name: 'Baju Kaos', qty: 1 },
-    { name: 'Gelas Mugs', qty: 3 },
+    { name: 'Gelas Mugs', qty: 2 },
   ],
   MUNIR: [
     { name: 'Rice Cooker', qty: 1 },

@@ -102,7 +102,6 @@ const DATA_PESERTA = {
       "MAHARUDDIN",
       "NURMIN",
       "ASYA",
-      "NURMIN",
       "LELY",
       "AQILA",
       "RIKO",
