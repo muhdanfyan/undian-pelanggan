@@ -3,16 +3,16 @@
 // WAJIB_ZONK: warga yang WAJIB mendapat ZONK saat spin (tidak dapat hadiah)
 const WAJIB_ZONK = {
   "ALDIN": {
-    "LIABUKU": ["RIO", "YAYU", "HANS"],
+    "LIABUKU": ["RIO", "YAYU", "HANS", "MERI"],
     "KOLESE": ["FANIZA"]
   },
   "MUNIR": {
-    "KARYA BARU, BUGI, KAISABU": ["DEDE", "NURDIN", "WAHYU", "IMA"],
-    "WABOROBO": []
+    "KARYA BARU, BUGI, KAISABU": ["DEDE", "NURDIN", "WAHYU", "IMA", "RIO", "FARID", "ATI", "MULIADI", "WAHID"],
+    "WABOROBO": ["RIAN"]
   },
   "NASRUN": {
     "GONDA BARU": ["JEJE", "MAFIA", "FARID", "FIKRI", "KASRIN", "ATI", "ZULL", "MULIADI", "RINDRA", "RUSLAN", "HAMIT"],
-    "NGKARING-KARING": ["DIAS", "FATA", "ADEL", "KOLAM", "WAHID", "MERI", "RIAN", "LETTER", "NGURAH", "DAT", "SUAS", "CHELSIA", "TINI", "POLIS"]
+    "NGKARING-KARING": ["DIAS", "FATA", "ADEL", "KOLAM", "WAHID", "MERI", "RIAN", "LETTER", "NGURAH", "DAT", "SUAS", "CHELSIA", "TINI", "POLIS", "RIO"]
   },
   "IRVAN": {
     "PALABUSA, WANAJATI, KALIPU2, WONCO": [
@@ -27,7 +27,8 @@ const WAJIB_ZONK = {
       "ALONG",
       "MOJI",
       "FAHRI KALIPU2",
-      "MADING KALIPU2"
+      "MADING KALIPU2",
+      "WAHYU"
     ]
   }
 };
