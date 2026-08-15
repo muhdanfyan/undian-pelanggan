@@ -127,29 +127,29 @@ canvas { width:100%; height:auto; display:block; margin:0 auto; border-radius:50
 
 /* ===== JARUM — TANPA HUB BULAT, TANPA GLOW BESAR (glow menyorot segmen) ===== */
 .pointer {
-  position:absolute; top:7px; left:50%; transform:translateX(-50%);
+  position:absolute; top:6px; left:50%; transform:translateX(-50%);
   width:0; height:0; z-index:9;
-  border-left:28px solid transparent;
-  border-right:28px solid transparent;
-  border-top:46px solid var(--neon-yellow);
+  border-left:16px solid transparent;
+  border-right:16px solid transparent;
+  border-top:26px solid var(--neon-yellow);
   filter:
-    drop-shadow(-3px 0 0 rgba(13,21,38,.9))
-    drop-shadow(3px 0 0 rgba(13,21,38,.9))
-    drop-shadow(0 -3px 0 rgba(13,21,38,.9))
-    drop-shadow(0 6px 12px rgba(0,0,0,.65));
+    drop-shadow(-2px 0 0 rgba(13,21,38,.9))
+    drop-shadow(2px 0 0 rgba(13,21,38,.9))
+    drop-shadow(0 -2px 0 rgba(13,21,38,.9))
+    drop-shadow(0 4px 8px rgba(0,0,0,.65));
   animation: pointerPulse 1.6s ease-in-out infinite;
 }
 @keyframes pointerPulse {
   0%,100% { filter:
-    drop-shadow(-3px 0 0 rgba(13,21,38,.9))
-    drop-shadow(3px 0 0 rgba(13,21,38,.9))
-    drop-shadow(0 -3px 0 rgba(13,21,38,.9))
-    drop-shadow(0 6px 12px rgba(0,0,0,.65)); }
+    drop-shadow(-2px 0 0 rgba(13,21,38,.9))
+    drop-shadow(2px 0 0 rgba(13,21,38,.9))
+    drop-shadow(0 -2px 0 rgba(13,21,38,.9))
+    drop-shadow(0 4px 8px rgba(0,0,0,.65)); }
   50% { filter:
-    drop-shadow(-3px 0 0 rgba(13,21,38,.9))
-    drop-shadow(3px 0 0 rgba(13,21,38,.9))
-    drop-shadow(0 -3px 0 rgba(13,21,38,.9))
-    drop-shadow(0 6px 12px rgba(0,0,0,.65)); }
+    drop-shadow(-2px 0 0 rgba(13,21,38,.9))
+    drop-shadow(2px 0 0 rgba(13,21,38,.9))
+    drop-shadow(0 -2px 0 rgba(13,21,38,.9))
+    drop-shadow(0 4px 8px rgba(0,0,0,.65)); }
 }
 
 /* ===== BUTTONS ===== */

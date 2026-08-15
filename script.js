@@ -485,7 +485,7 @@ let wheelCbId = null;
 
 /* ZONK di roda biasa: 8 segmen, warna abu-abu bervariasi supaya tidak mencolok */
 const ZONK_SEGMENTS = 8;
-const ZONK_COLORS = ['#94a3b8', '#8896a8', '#7d8b9d', '#a3b0bf', '#8b98a8', '#9aa7b5', '#8493a4', '#99a6b4'];
+const ZONK_COLORS = ['#c084fc', '#f472b6', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#2dd4bf', '#a3e635'];
 
 function getAvailablePrizes(agen) {
   return (AGEN_QUOTA[agen] || []).filter(p => p.qty > 0);
