@@ -235,7 +235,6 @@ const DATA_PESERTA = {
       "ARIN",
       "VENZO",
       "RIO",
-      "ARUM",
       "MAHESA",
       "TONI",
       "LAJARUBI",
