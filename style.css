@@ -413,6 +413,27 @@ pre {
 .grand-info p { margin:2px 0; }
 .grand-info #grandCountInfo { font-weight:700; color:var(--neon-yellow); }
 
+/* ===== DAFTAR HASIL SPIN SEPEDA LISTRIK (di atas roda) ===== */
+.grand-results {
+  width:min(92vw, 560px); margin:14px auto 6px;
+  background: var(--panel); border:1px solid rgba(10,158,110,.35);
+  border-radius: var(--radius); padding:12px 16px;
+}
+.grand-results-title {
+  font-family:'Orbitron', sans-serif; font-size:13px; letter-spacing:2px;
+  color:var(--neon-green); font-weight:700; text-align:center; margin-bottom:8px;
+}
+.grand-results-list { display:flex; flex-direction:column; gap:6px; max-height:170px; overflow-y:auto; }
+.grand-result-item {
+  display:flex; gap:8px; align-items:center; font-size:16px; font-weight:700;
+  color:#fff; background:rgba(10,158,110,.12); border:1px solid rgba(10,158,110,.25);
+  border-radius:8px; padding:6px 10px;
+}
+.gr-idx { color:var(--neon-yellow); font-weight:900; min-width:24px; }
+.gr-name { color:var(--neon-green); }
+.gr-agen { color:#94a3b8; font-size:13px; }
+.gr-prize { color:var(--neon-yellow); font-size:13px; margin-left:auto; white-space:nowrap; }
+
 /* ===== SPIN PAGE — POLISH BARU ===== */
 .warga-picker {
   display:flex; flex-direction:column; gap:8px; align-items:center;

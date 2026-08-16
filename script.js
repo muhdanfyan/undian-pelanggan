@@ -171,6 +171,8 @@ const els = {
   resultGrand: $('resultGrand'),
   counterGrand: $('counterGrand'),
   btnBackGrand: $('btnBackGrand'),
+  grandResults: $('grandResults'),
+  grandResultsList: $('grandResultsList'),
   // VERIFIKASI ZONK (owner)
   panelVerif: $('panelVerif'),
   verifWrap: $('verifWrap'),
@@ -822,6 +824,7 @@ function openGrand() {
   state.grandMode = true;
   if (els.grandCountInfo) els.grandCountInfo.textContent = getBelumGrand().length;
   initGrandWheel();
+  renderGrandResults();
   showPanel('grand');
 }
 
@@ -883,6 +886,7 @@ function initGrandWheel(opts = {}) {
     if (gp) gp.qty--;
     state.grandSudah.push({ warga: pemenang.nama, agen: pemenang.agen, hadiah: 'Sepeda Listrik' });
     saveState();
+    renderGrandResults();
     els.resultGrand.textContent = '🏆 SELAMAT! ' + pemenang.nama + ' (' + pemenang.agen + ') mendapatkan SEPEDA LISTRIK!';
     els.resultGrand.classList.add('win');
     playFanfare(); fireConfetti();
@@ -962,6 +966,21 @@ function updateGrandCounter() {
   const sisa = getBelumGrand().length;
   if (els.grandCountInfo) els.grandCountInfo.textContent = sisa;
   els.counterGrand.textContent = `Grand (otomatis): ${sisa} warga ikut undian${gpLeft ? '' : ' · 🏆 SUDAH MENANG!'}`;
+}
+
+/* Daftar hasil spin — setiap nama yang kena jarum muncul di ATAS halaman */
+function renderGrandResults() {
+  const list = els.grandResultsList;
+  if (!list) return;
+  if (!state.grandSudah.length) {
+    if (els.grandResults) els.grandResults.classList.add('hidden');
+    list.innerHTML = '';
+    return;
+  }
+  if (els.grandResults) els.grandResults.classList.remove('hidden');
+  list.innerHTML = state.grandSudah.map((h, i) =>
+    '<div class="grand-result-item"><span class="gr-idx">' + (i + 1) + '.</span><span class="gr-name">🏆 ' + h.warga + '</span><span class="gr-agen">(' + h.agen + ')</span><span class="gr-prize">— ' + h.hadiah + '</span></div>'
+  ).join('');
 }
 
 els.btnBackGrand.addEventListener('click', () => {
