@@ -901,8 +901,8 @@ function initGrandWheel(opts = {}) {
     outerRadius: 258,
     centerX: 280,
     centerY: 280,
-    strokeStyle: '#0d1526',
-    lineWidth: 2,
+    strokeStyle: 'transparent',
+    lineWidth: 0,
     segments: segs,
     animation: {
       type: 'spinToStop',
