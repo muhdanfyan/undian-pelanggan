@@ -843,36 +843,27 @@ function getBelumGrand() {
 }
 
 function getGrandSegments() {
-  const gp = GRAND_PRIZE.filter(p => p.qty > 0);
+  const list = getBelumGrand(); // [{nama, agen, area}]
   const segs = [];
-  if (gp.length) {
-    // FIFTY-FIFTY grand: selang-seling [Sepeda Listrik, ZONK, Sepeda Listrik, ZONK] — visual 50:50.
-    const segSize = 90;
-    for (let i = 0; i < 2; i++) {
+  if (!list.length) return segs;
+  const segSize = 360 / list.length;
+  const fs = list.length > 300 ? 4 : list.length > 150 ? 5 : 7;
+  list.slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }))
+    .forEach((r, i) => {
       segs.push({
-        fillStyle: '#ffd700',
-        text: '🏆 Sepeda Listrik',
-        textFontSize: 22,
-        textFillStyle: '#5b4a00',
-        textFontFamily: 'Rajdhani',
-        textFontWeight: 'bold',
-        textOrientation: 'horizontal',
-        textAlignment: 'center',
-        size: segSize,
-      });
-      segs.push({
-        fillStyle: '#94a3b8',
-        text: 'ZONK',
-        textFontSize: 30,
+        fillStyle: COLORS[i % COLORS.length],
+        text: r.nama,
+        zonk: false,
+        textFontSize: fs,
         textFillStyle: '#ffffff',
         textFontFamily: 'Rajdhani',
         textFontWeight: 'bold',
         textOrientation: 'horizontal',
         textAlignment: 'center',
         size: segSize,
+        warga: r, // simpan referensi warga di segmen
       });
-    }
-  }
+    });
   return segs;
 }
 
@@ -899,10 +890,16 @@ function initGrandWheel(opts = {}) {
     const prizeName = seg ? seg.text.replace(/^🏆\s*/, '') : null;
     if (!prizeName) return;
 
-    if (prizeName === 'ZONK' || !state.grandPemenang) {
+    // Hasil = segmen yang ditunjuk jarum: kalau segmen itu pemenang → MENANG sepeda
+    // Kalau bukan pemenang (atau tidak ada pemenang) → ZONK
+    const isWinnerSeg = state.grandPemenang && seg.warga &&
+      seg.warga.nama === state.grandPemenang.nama &&
+      seg.warga.agen === state.grandPemenang.agen;
+    if (!isWinnerSeg) {
+      // ZONK — jarum menunjuk warga lain
       els.resultGrand.textContent = '😬 ZONK — coba lagi tahun depan!';
       els.resultGrand.classList.add('zonk');
-      playZonkSound(); // 🔊 suara kalah
+      playZonkSound();
       state.grandPemenang = null;
       updateGrandCounter();
       renderGrandList();
@@ -912,10 +909,10 @@ function initGrandWheel(opts = {}) {
     }
 
     const pemenang = state.grandPemenang;
-    const gp = GRAND_PRIZE.find(p => p.name === prizeName || p.name === 'Sepeda Listrik');
-    if (gp) gp.qty--; // sepeda listrik habis — tidak bisa dimenangkan lagi
+    const gp = GRAND_PRIZE.find(p => p.name === 'Sepeda Listrik');
+    if (gp) gp.qty--;
     state.grandSudah.push({ warga: pemenang.nama, agen: pemenang.agen, hadiah: 'Sepeda Listrik' });
-    saveState(); // simpan riwayat grand + stok grand
+    saveState();
     els.resultGrand.textContent = '🏆 SELAMAT! ' + pemenang.nama + ' (' + pemenang.agen + ') mendapatkan Sepeda Listrik!';
     els.resultGrand.classList.add('win');
     playFanfare(); fireConfetti();
@@ -937,8 +934,8 @@ function initGrandWheel(opts = {}) {
     segments: segs,
     animation: {
       type: 'spinToStop',
-      duration: 7.5,
-      spins: 10 + Math.floor(Math.random() * 6), // putaran maksimal 10-15x
+      duration: 13,
+      spins: 16 + Math.floor(Math.random() * 10),
       easing: 'Power4.easeOut',
       callbackFinished: grandCbId + '()',
     },
@@ -953,11 +950,9 @@ function initGrandWheel(opts = {}) {
 function spinGrandWheel() {
   ensureAudio();
   grandWheel.stopAnimation(false);
-  grandWheel.animation.duration = 7.5;
-  grandWheel.animation.spins = 10 + Math.floor(Math.random() * 6);
+  grandWheel.animation.duration = 13;
+  grandWheel.animation.spins = 16 + Math.floor(Math.random() * 10);
 
-  // 🎯 GRAND FIFTY-FIFTY: visual 50:50, tapi peluang menang TETAP = 1/sisaPesertaGrand.
-  // Putusan menang/kalah di-skenario dulu, lalu stopAngle diarahkan ke segmen target.
   const pool = getBelumGrand();
   const sisaGrand = pool.length;
   const gpLeft = GRAND_PRIZE.reduce((a, p) => a + p.qty, 0);
@@ -979,9 +974,13 @@ function spinGrandWheel() {
   for (let i = 1; i < grandWheel.segments.length; i++) {
     const seg = grandWheel.segments[i];
     if (isMenang && state.grandPemenang) {
-      if (!seg.zonk && seg.text !== 'ZONK') targetSegList.push(seg);
+      if (seg.warga && seg.warga.nama === state.grandPemenang.nama && seg.warga.agen === state.grandPemenang.agen) {
+        targetSegList.push(seg);
+      }
     } else {
-      if (seg.zonk || seg.text === 'ZONK') targetSegList.push(seg);
+      if (!state.grandPemenang || !seg.warga || seg.warga.nama !== state.grandPemenang.nama || seg.warga.agen !== state.grandPemenang.agen) {
+        targetSegList.push(seg);
+      }
     }
   }
   if (!targetSegList.length) targetSegList = grandWheel.segments.slice(1);
@@ -995,8 +994,8 @@ function spinGrandWheel() {
   const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
   if (gwrap) { gwrap.classList.remove('spinning'); void gwrap.offsetWidth; gwrap.classList.add('spinning'); }
   startTicking();
-  // 🔊 Fade tick MULAI sebelum roda berhenti (sama seperti roda biasa).
-  tickStopTimer = setTimeout(() => { tickStopTimer = null; stopTicking(); }, 5800);
+  // 🔊 Fade tick MULAI sebelum roda berhenti (roda berhenti 13s, fade mulai 10s, selesai ±12.3s, senyap sebelum berhenti).
+  tickStopTimer = setTimeout(() => { tickStopTimer = null; stopTicking(); }, 10000);
   grandWheel.startAnimation();
 }
 
