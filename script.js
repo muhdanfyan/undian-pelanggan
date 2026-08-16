@@ -85,6 +85,7 @@ const state = {
   try {
     const url = new URL(window.location.href);
     if (url.searchParams.get('reset') === '1') {
+      localStorage.removeItem('undian_session_v1');
       localStorage.removeItem('undian_sudah_v1');
       localStorage.removeItem('undian_qty_v1');
       localStorage.removeItem('undian_grand_v1');
@@ -161,6 +162,7 @@ const els = {
   // UNDIAN UTAMA (GRAND) — sepeda listrik 17 Agu
   panelGrand: $('panelGrand'),
   grandCountInfo: $('grandCountInfo'),
+  grandList: $('grandList'),
   canvasGrand: $('canvasGrand'),
   btnSpinGrand: $('btnSpinGrand'),
   resultGrand: $('resultGrand'),
@@ -281,6 +283,7 @@ $('loginForm').addEventListener('submit', (e) => {
   const k = KOORDINATOR[user];
   if (k && k.pass === pass) {
     state.user = user;
+    try { localStorage.setItem('undian_session_v1', user); } catch (e) { /* abaikan */ }
     $('loginError').classList.add('hidden');
     enterApp(k);
   } else {
@@ -294,6 +297,7 @@ $('btnLogout').addEventListener('click', () => {
   state.tidakHadir = {};
   // logout = reset undian: hapus semua data persistensi
   try {
+    localStorage.removeItem('undian_session_v1');
     localStorage.removeItem('undian_sudah_v1');
     localStorage.removeItem('undian_qty_v1');
     localStorage.removeItem('undian_grand_v1');
@@ -316,6 +320,17 @@ function enterApp(k) {
   els.headerSub.textContent = 'Gebyar Koneksi Setia — Wilayah ' + k.nama + ' · Internet Merdeka';
   renderAreaPicker();
 }
+
+// Auto-restore session login (tidak perlu login ulang setelah refresh)
+(function restoreSession() {
+  try {
+    const savedUser = localStorage.getItem('undian_session_v1');
+    if (savedUser && KOORDINATOR[savedUser]) {
+      state.user = savedUser;
+      enterApp(KOORDINATOR[savedUser]);
+    }
+  } catch (e) { /* abaikan */ }
+})();
 
 /* ---------- GRAND MODE (17 AGUSTUS) ---------- */
 function isGrandDay() {
@@ -804,8 +819,20 @@ function openGrand() {
   state.grandMode = true;
   state.grandPemenang = null;
   if (els.grandCountInfo) els.grandCountInfo.textContent = getBelumGrand().length;
+  renderGrandList();
   initGrandWheel();
   showPanel('grand');
+}
+
+function renderGrandList() {
+  if (!els.grandList) return;
+  const list = getBelumGrand().slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
+  if (!list.length) {
+    els.grandList.innerHTML = '<span class="grand-empty">Tidak ada warga terdaftar</span>';
+    return;
+  }
+  const html = list.map(r => `<span class="grand-item" title="${r.nama} - ${r.area}">${r.nama} - ${r.area}</span>`).join('');
+  els.grandList.innerHTML = html;
 }
 
 function renderGrandPicker() {}
@@ -859,6 +886,7 @@ function initGrandWheel(opts = {}) {
     }
     els.btnSpinGrand.disabled = true;
     updateGrandCounter();
+    renderGrandList();
     return;
   }
   els.btnSpinGrand.disabled = false;
@@ -877,6 +905,7 @@ function initGrandWheel(opts = {}) {
       playZonkSound(); // 🔊 suara kalah
       state.grandPemenang = null;
       updateGrandCounter();
+      renderGrandList();
       els.btnSpinGrand.disabled = false;
       state.spinning = false;
       return;
@@ -893,6 +922,7 @@ function initGrandWheel(opts = {}) {
     setTimeout(fireConfetti, 400);
     state.grandPemenang = null;
     updateGrandCounter();
+    renderGrandList();
     els.btnSpinGrand.disabled = true; // sepeda sudah menang — tidak bisa spin lagi
     state.spinning = false;
   };
