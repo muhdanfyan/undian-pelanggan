@@ -73,7 +73,7 @@ const state = {
   tidakHadir: {},    // { agen: { area: [nama, ...] } } — warga ditandai TIDAK HADIR (door-to-door)
   spinning: false,
   grandMode: false,  // mode undian utama (sepeda listrik 17 Agu)
-  grandWarga: null,  // { nama, agen } warga yang spin grand
+  grandPemenang: null, // pemenang undian grand terpilih saat spin
   grandSudah: [],    // [ { warga, agen, hadiah } ] — riwayat grand
 };
 
@@ -160,11 +160,7 @@ const els = {
   btnTable: $('btnTable'),
   // UNDIAN UTAMA (GRAND) — sepeda listrik 17 Agu
   panelGrand: $('panelGrand'),
-  grandSelect: $('grandSelect'),
-  grandSearch: $('grandSearch'),
-  btnPickGrand: $('btnPickGrand'),
-  grandWargaActive: $('grandWargaActive'),
-  grandWargaName: $('grandWargaName'),
+  grandCountInfo: $('grandCountInfo'),
   canvasGrand: $('canvasGrand'),
   btnSpinGrand: $('btnSpinGrand'),
   resultGrand: $('resultGrand'),
@@ -424,7 +420,6 @@ function selectArea(area) {
 
 /* ---------- WARGA PICKER ---------- */
 let _wargaAll = []; // daftar penuh (sebelum filter pencarian)
-let _grandAll = []; // daftar penuh grand (sebelum filter pencarian)
 
 function renderWargaPicker() {
   const k = KOORDINATOR[state.user];
@@ -807,64 +802,18 @@ function getAllWarga() {
 
 function openGrand() {
   state.grandMode = true;
-  state.grandWarga = null;
-  renderGrandPicker();
+  state.grandPemenang = null;
+  if (els.grandCountInfo) els.grandCountInfo.textContent = getBelumGrand().length;
   initGrandWheel();
   showPanel('grand');
 }
 
-function renderGrandPicker() {
-  const sudahSet = new Set(state.grandSudah.map(x => x.warga + '|' + x.agen));
-  const rows = getAllWarga().filter(r => !sudahSet.has(r.nama + '|' + r.agen));
-  // Urutkan A-Z (case-insensitive)
-  _grandAll = rows.slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
-  if (els.grandSearch) els.grandSearch.value = '';
-  applyGrandFilter();
-  els.grandWargaActive.classList.add('hidden');
-  els.btnPickGrand.disabled = !_grandAll.length;
-  updateGrandCounter();
-}
+function renderGrandPicker() {}
 
 function getBelumGrand() {
   const sudahSet = new Set(state.grandSudah.map(x => x.warga + '|' + x.agen));
   return getAllWarga().filter(r => !sudahSet.has(r.nama + '|' + r.agen));
 }
-
-function applyGrandFilter() {
-  const q = (els.grandSearch ? els.grandSearch.value : '').trim().toLowerCase();
-  const filtered = q ? _grandAll.filter(r => r.nama.toLowerCase().includes(q)) : _grandAll;
-  const sel = els.grandSelect;
-  sel.innerHTML = '';
-  const opt = document.createElement('option');
-  opt.value = '';
-  opt.textContent = filtered.length ? '— Pilih warga (semua koordinator) —' : (q ? '— Tidak ditemukan —' : '— Semua warga sudah spin grand! —');
-  sel.appendChild(opt);
-  // Nama tampil BERSIH tanpa keterangan ZONK
-  filtered.forEach(r => {
-    const o = document.createElement('option');
-    o.value = r.nama + '|' + r.agen;
-    o.textContent = `${r.nama} · ${r.agen}`;
-    sel.appendChild(o);
-  });
-  els.btnPickGrand.disabled = !filtered.length;
-}
-
-if (els.grandSearch) {
-  els.grandSearch.addEventListener('input', applyGrandFilter);
-}
-
-els.btnPickGrand.addEventListener('click', () => {
-  const val = els.grandSelect.value;
-  if (!val) return;
-  const [nama, agen] = val.split('|');
-  state.grandWarga = { nama, agen };
-  els.grandWargaName.textContent = nama + ' (' + agen + ')';
-  els.grandWargaActive.classList.remove('hidden');
-  els.resultGrand.textContent = '';
-  els.resultGrand.classList.remove('win', 'zonk');
-  els.btnSpinGrand.disabled = false;
-  initGrandWheel();
-});
 
 function getGrandSegments() {
   const gp = GRAND_PRIZE.filter(p => p.qty > 0);
@@ -912,6 +861,7 @@ function initGrandWheel(opts = {}) {
     updateGrandCounter();
     return;
   }
+  els.btnSpinGrand.disabled = false;
   grandCbId = 'grandCb' + Date.now();
   window[grandCbId] = function () {
     stopTicking();
@@ -920,35 +870,29 @@ function initGrandWheel(opts = {}) {
     const seg = grandWheel.getIndicatedSegment();
     const prizeName = seg ? seg.text.replace(/^🏆\s*/, '') : null;
     if (!prizeName) return;
-    // 🛡️ Safety net GRAND: warga wajib ZONK global — hasil dipaksa ZONK meski jarum
-    // sempat menunjuk Sepeda Listrik (anti-bocor jika stopAngle gagal/off).
-    const isWajibKalahCb = isWajibZonkGrand(state.grandWarga ? state.grandWarga.agen : null, state.grandWarga ? state.grandWarga.nama : null);
-    if (prizeName === 'ZONK' || isWajibKalahCb) {
-      state.grandSudah.push({ warga: state.grandWarga.nama, agen: state.grandWarga.agen, hadiah: 'ZONK' });
-      saveState(); // simpan riwayat grand (ZONK)
+
+    if (prizeName === 'ZONK' || !state.grandPemenang) {
       els.resultGrand.textContent = '😬 ZONK — coba lagi tahun depan!';
       els.resultGrand.classList.add('zonk');
       playZonkSound(); // 🔊 suara kalah
-      state.grandWarga = null;
-      els.grandWargaActive.classList.add('hidden');
+      state.grandPemenang = null;
       updateGrandCounter();
-      renderGrandPicker();
       els.btnSpinGrand.disabled = false;
       state.spinning = false;
       return;
     }
-    const gp = GRAND_PRIZE.find(p => p.name === prizeName);
+
+    const pemenang = state.grandPemenang;
+    const gp = GRAND_PRIZE.find(p => p.name === prizeName || p.name === 'Sepeda Listrik');
     if (gp) gp.qty--; // sepeda listrik habis — tidak bisa dimenangkan lagi
-    state.grandSudah.push({ warga: state.grandWarga.nama, agen: state.grandWarga.agen, hadiah: prizeName });
+    state.grandSudah.push({ warga: pemenang.nama, agen: pemenang.agen, hadiah: 'Sepeda Listrik' });
     saveState(); // simpan riwayat grand + stok grand
-    els.resultGrand.textContent = '🏆 SELAMAT! ' + prizeName + ' untuk ' + state.grandWarga.nama + '!';
+    els.resultGrand.textContent = '🏆 SELAMAT! ' + pemenang.nama + ' (' + pemenang.agen + ') mendapatkan Sepeda Listrik!';
     els.resultGrand.classList.add('win');
     playFanfare(); fireConfetti();
     setTimeout(fireConfetti, 400);
-    state.grandWarga = null;
-    els.grandWargaActive.classList.add('hidden');
+    state.grandPemenang = null;
     updateGrandCounter();
-    renderGrandPicker();
     els.btnSpinGrand.disabled = true; // sepeda sudah menang — tidak bisa spin lagi
     state.spinning = false;
   };
@@ -984,17 +928,27 @@ function spinGrandWheel() {
 
   // 🎯 GRAND FIFTY-FIFTY: visual 50:50, tapi peluang menang TETAP = 1/sisaPesertaGrand.
   // Putusan menang/kalah di-skenario dulu, lalu stopAngle diarahkan ke segmen target.
-  const sisaGrand = getBelumGrand().length;
+  const pool = getBelumGrand();
+  const sisaGrand = pool.length;
   const gpLeft = GRAND_PRIZE.reduce((a, p) => a + p.qty, 0);
   const winProb = (gpLeft > 0 && sisaGrand > 0) ? Math.min(1 / sisaGrand, 0.85) : 0;
-  // 🛡️ FIX GRAND: warga wajib ZONK (di agennya sendiri ATAU agen lain) TIDAK boleh menang Sepeda Listrik.
-  const isWajibKalahGrand = isWajibZonkGrand(state.grandWarga ? state.grandWarga.agen : null, state.grandWarga ? state.grandWarga.nama : null);
-  const isMenang = !isWajibKalahGrand && gpLeft > 0 && (Math.random() < winProb);
+  let isMenang = gpLeft > 0 && sisaGrand > 0 && (Math.random() < winProb);
+
+  // Pilih pemenang acak SEKARANG (semua warga otomatis ikut — tidak ada pilihan manual)
+  state.grandPemenang = null;
+  if (isMenang) {
+    const validPool = pool.filter(r => !isWajibZonkGrand(r.agen, r.nama));
+    if (validPool.length > 0) {
+      state.grandPemenang = validPool[Math.floor(Math.random() * validPool.length)];
+    } else {
+      isMenang = false;
+    }
+  }
 
   let targetSegList = [];
   for (let i = 1; i < grandWheel.segments.length; i++) {
     const seg = grandWheel.segments[i];
-    if (isMenang) {
+    if (isMenang && state.grandPemenang) {
       if (!seg.zonk && seg.text !== 'ZONK') targetSegList.push(seg);
     } else {
       if (seg.zonk || seg.text === 'ZONK') targetSegList.push(seg);
@@ -1017,7 +971,7 @@ function spinGrandWheel() {
 }
 
 els.btnSpinGrand.addEventListener('click', () => {
-  if (state.spinning || !grandWheel || !state.grandWarga) return;
+  if (state.spinning || !grandWheel) return;
   state.spinning = true;
   els.btnSpinGrand.disabled = true;
   els.resultGrand.textContent = '';
@@ -1027,10 +981,9 @@ els.btnSpinGrand.addEventListener('click', () => {
 
 function updateGrandCounter() {
   const gpLeft = GRAND_PRIZE.reduce((a, p) => a + p.qty, 0);
-  const sudahSet = new Set(state.grandSudah.map(x => x.warga + '|' + x.agen));
-  const total = getAllWarga().length;
-  const sisa = total - sudahSet.size;
-  els.counterGrand.textContent = `Grand (terpusat): ${sisa} dari ${total} warga belum spin${gpLeft ? '' : ' · 🏆 SUDAH MENANG!'}`;
+  const sisa = getBelumGrand().length;
+  if (els.grandCountInfo) els.grandCountInfo.textContent = sisa;
+  els.counterGrand.textContent = `Grand (otomatis): ${sisa} warga ikut undian${gpLeft ? '' : ' · 🏆 SUDAH MENANG!'}`;
 }
 
 els.btnBackGrand.addEventListener('click', () => {

@@ -87,15 +87,10 @@
     <div class="step-label">🚲 UNDIAN SEPEDA LISTRIK</div>
     <div class="area-info">🏆 Hadiah utama — gabung semua koordinator & semua warga dalam satu roda</div>
 
-    <div class="warga-picker">
-      <label for="grandSelect">👤 Pilih Warga (semua koordinator)</label>
-      <input type="search" id="grandSearch" class="warga-search" placeholder="🔍 Cari nama warga…" autocomplete="off">
-      <select id="grandSelect">
-        <option value="">— Pilih nama warga —</option>
-      </select>
-      <button class="btn-ghost btn-sm" id="btnPickGrand">✓ Pilih</button>
+    <div class="grand-info">
+      <p>🎯 Semua warga dari semua koordinator OTOMATIS ikut undian ini.</p>
+      <p>👥 <span id="grandCountInfo">591</span> warga terdaftar · Tekan PUTAR untuk mengundi.</p>
     </div>
-    <div class="warga-active hidden" id="grandWargaActive">🏆 Warga: <b id="grandWargaName"></b> — silakan TEKAN tombol!</div>
 
     <div class="wheel-wrap">
       <canvas id="canvasGrand" width="560" height="560"></canvas>
