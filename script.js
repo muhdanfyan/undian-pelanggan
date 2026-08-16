@@ -334,9 +334,9 @@ function renderAreaPicker() {
   const areas = Object.keys(agenData);
   els.areaGrid.innerHTML = '';
 
-  // 🚲 Halaman khusus UNDIAN SEPEDA LISTRIK — selalu tampil untuk semua koordinator.
+  // 🚲 Halaman khusus UNDIAN SEPEDA LISTRIK — HANYA untuk koordinator IRVAN (owner).
   // Menggabung SEMUA warga dari SEMUA koordinator dalam satu roda undian.
-  {
+  if (k.role === 'owner') {
     const btnGrand = document.createElement('button');
     btnGrand.className = 'area-card area-card-grand';
     const gpLeft = GRAND_PRIZE.reduce((a, p) => a + p.qty, 0);
