@@ -884,10 +884,10 @@ function initGrandWheel(opts = {}) {
     const pemenang = seg.warga;
     const gp = GRAND_PRIZE.find(p => p.name === 'Sepeda Listrik');
     if (gp) gp.qty--;
-    state.grandSudah.push({ warga: pemenang.nama, agen: pemenang.agen, hadiah: 'Sepeda Listrik' });
+    state.grandSudah.push({ warga: pemenang.nama, agen: pemenang.agen, area: pemenang.area, hadiah: 'Sepeda Listrik' });
     saveState();
     renderGrandResults();
-    els.resultGrand.textContent = '🏆 SELAMAT! ' + pemenang.nama + ' (' + pemenang.agen + ') mendapatkan SEPEDA LISTRIK!';
+    els.resultGrand.textContent = '🏆 SELAMAT! ' + pemenang.nama + ' (' + pemenang.area + ') mendapatkan SEPEDA LISTRIK!';
     els.resultGrand.classList.add('win');
     playFanfare(); fireConfetti();
     setTimeout(fireConfetti, 400);
@@ -906,8 +906,8 @@ function initGrandWheel(opts = {}) {
     segments: segs,
     animation: {
       type: 'spinToStop',
-      duration: 13,
-      spins: 16 + Math.floor(Math.random() * 10),
+      duration: 6,
+      spins: 8 + Math.floor(Math.random() * 5),
       easing: 'Power4.easeOut',
       callbackFinished: grandCbId + '()',
     },
@@ -930,8 +930,8 @@ function spinGrandWheel() {
 
   ensureAudio();
   grandWheel.stopAnimation(false);
-  grandWheel.animation.duration = 13;
-  grandWheel.animation.spins = 16 + Math.floor(Math.random() * 10);
+  grandWheel.animation.duration = 6;
+  grandWheel.animation.spins = 8 + Math.floor(Math.random() * 5);
 
   // Ambil semua segmen warga valid dari roda
   const validSegments = grandWheel.segments.slice(1).filter(seg => seg && seg.warga);
@@ -947,8 +947,8 @@ function spinGrandWheel() {
   const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
   if (gwrap) { gwrap.classList.remove('spinning'); void gwrap.offsetWidth; gwrap.classList.add('spinning'); }
   startTicking();
-  // 🔊 Fade tick MULAI sebelum roda berhenti (roda berhenti 13s, fade mulai 10s, selesai ±12.3s, senyap sebelum berhenti).
-  tickStopTimer = setTimeout(() => { tickStopTimer = null; stopTicking(); }, 10000);
+  // 🔊 Fade tick MULAI sebelum roda berhenti (roda berhenti 6s, fade mulai 4.2s, senyap sebelum berhenti).
+  tickStopTimer = setTimeout(() => { tickStopTimer = null; stopTicking(); }, 4200);
   grandWheel.startAnimation();
 }
 
@@ -979,7 +979,7 @@ function renderGrandResults() {
   }
   if (els.grandResults) els.grandResults.classList.remove('hidden');
   list.innerHTML = state.grandSudah.map((h, i) =>
-    '<div class="grand-result-item"><span class="gr-idx">' + (i + 1) + '.</span><span class="gr-name">🏆 ' + h.warga + '</span><span class="gr-agen">(' + h.agen + ')</span><span class="gr-prize">— ' + h.hadiah + '</span></div>'
+    '<div class="grand-result-item"><span class="gr-idx">' + (i + 1) + '.</span><span class="gr-name">🏆 ' + h.warga + '</span><span class="gr-lok">(' + (h.area || h.agen) + ')</span><span class="gr-prize">— ' + h.hadiah + '</span></div>'
   ).join('');
 }
 
