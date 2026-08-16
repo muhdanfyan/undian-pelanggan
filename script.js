@@ -173,6 +173,7 @@ const els = {
   btnBackGrand: $('btnBackGrand'),
   grandResults: $('grandResults'),
   grandResultsList: $('grandResultsList'),
+  grandLiveName: $('grandLiveName'),
   // VERIFIKASI ZONK (owner)
   panelVerif: $('panelVerif'),
   verifWrap: $('verifWrap'),
@@ -807,6 +808,29 @@ els.btnBack.addEventListener('click', () => {
    ============================================================ */
 let grandWheel = null;
 let grandCbId = null;
+let grandLiveTimer = null;
+
+/* Nama LIVE mengikuti jarum selama spin — highlight pemenang saat berhenti */
+function startGrandLive() {
+  if (grandLiveTimer) clearInterval(grandLiveTimer);
+  grandLiveTimer = setInterval(() => {
+    if (!grandWheel || !els.grandLiveName) return;
+    const seg = grandWheel.getIndicatedSegment();
+    if (seg && seg.warga) els.grandLiveName.textContent = seg.warga.nama;
+  }, 120);
+}
+function stopGrandLive(finalSeg) {
+  if (grandLiveTimer) { clearInterval(grandLiveTimer); grandLiveTimer = null; }
+  if (els.grandLiveName) {
+    if (finalSeg && finalSeg.warga) {
+      els.grandLiveName.textContent = finalSeg.warga.nama;
+      els.grandLiveName.classList.add('winner');
+    } else {
+      els.grandLiveName.textContent = '— Tekan PUTAR —';
+      els.grandLiveName.classList.remove('winner');
+    }
+  }
+}
 
 function getAllWarga() {
   const rows = [];
@@ -823,6 +847,7 @@ function getAllWarga() {
 function openGrand() {
   state.grandMode = true;
   if (els.grandCountInfo) els.grandCountInfo.textContent = getBelumGrand().length;
+  if (els.grandLiveName) { els.grandLiveName.textContent = '— Tekan PUTAR —'; els.grandLiveName.classList.remove('winner'); }
   initGrandWheel();
   renderGrandResults();
   showPanel('grand');
@@ -880,7 +905,7 @@ function initGrandWheel(opts = {}) {
     if (gwrap) gwrap.classList.remove('spinning');
     const seg = grandWheel.getIndicatedSegment();
     if (!seg || !seg.warga) return;
-
+    stopGrandLive(seg);
     const pemenang = seg.warga;
     const gp = GRAND_PRIZE.find(p => p.name === 'Sepeda Listrik');
     if (gp) gp.qty--;
@@ -949,6 +974,11 @@ function spinGrandWheel() {
   startTicking();
   // 🔊 Fade tick MULAI sebelum roda berhenti (roda berhenti 6s, fade mulai 4.2s, senyap sebelum berhenti).
   tickStopTimer = setTimeout(() => { tickStopTimer = null; stopTicking(); }, 4200);
+  if (els.grandLiveName) {
+    els.grandLiveName.classList.remove('winner');
+    els.grandLiveName.textContent = '…';
+  }
+  startGrandLive();
   grandWheel.startAnimation();
 }
 
