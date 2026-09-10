@@ -216,6 +216,10 @@ canvas { width:100%; height:auto; display:block; margin:0 auto; border-radius:50
 }
 .btn-ghost:hover { border-color:var(--neon-blue); color:var(--neon-blue); box-shadow:0 0 16px rgba(0,119,182,.20); transform:translateY(-1px); }
 .btn-tidak-hadir { margin-left:6px; padding:5px 12px; font-size:11px; font-weight:600; border-color:#d62839; color:#b91c1c; background:rgba(214,40,57,.06); }
+.btn-undo { padding:9px 18px; font-size:13px; font-weight:700; border-color:#d97706; color:#b45309; background:rgba(217,119,6,.07); }
+.btn-undo:hover { border-color:#d97706; color:#b45309; box-shadow:0 0 16px rgba(217,119,6,.20); }
+.btn-reset-data { padding:9px 16px; font-size:12px; font-weight:600; border-color:#d62839; color:#b91c1c; background:rgba(214,40,57,.05); }
+.btn-reset-data:hover { border-color:#d62839; color:#b91c1c; box-shadow:0 0 16px rgba(214,40,57,.18); }
 .btn-tidak-hadir:hover { border-color:#d62839; color:#b91c1c; box-shadow:0 0 16px rgba(214,40,57,.20); }
 .btn-pick { padding:14px 34px; font-size:17px; font-weight:800; }
 .btn-primary {

@@ -158,6 +158,8 @@ const els = {
   wargaName: $('wargaName'),
   canvasPeserta: $('canvasPeserta'),
   btnSpinPeserta: $('btnSpinPeserta'),
+  btnUndoSpin: $('btnUndoSpin'),
+  btnResetData: $('btnResetData'),
   resultPeserta: $('resultPeserta'),
   counterPeserta: $('counterPeserta'),
   navRow: $('navRow'),
@@ -168,6 +170,7 @@ const els = {
   grandCountInfo: $('grandCountInfo'),
   canvasGrand: $('canvasGrand'),
   btnSpinGrand: $('btnSpinGrand'),
+  btnUndoGrand: $('btnUndoGrand'),
   resultGrand: $('resultGrand'),
   counterGrand: $('counterGrand'),
   btnBackGrand: $('btnBackGrand'),
@@ -298,16 +301,12 @@ $('loginForm').addEventListener('submit', (e) => {
 });
 
 $('btnLogout').addEventListener('click', () => {
+  // Logout HANYA keluar sesi — riwayat pemenang, sisa stok hadiah, riwayat grand
+  // & tanda tidak hadir TETAP tersimpan (biar tidak ada warga menang 2×).
+  // Reset penuh data undian: tombol ♻️ Reset Data Undian atau URL ?reset=1.
   state.user = null; state.area = null; state.activeWarga = null;
-  state.sudah = {};
-  state.tidakHadir = {};
-  // logout = reset undian: hapus semua data persistensi
   try {
     localStorage.removeItem('undian_session_v1');
-    localStorage.removeItem('undian_sudah_v1');
-    localStorage.removeItem('undian_qty_v1');
-    localStorage.removeItem('undian_grand_v1');
-    localStorage.removeItem('undian_tidak_hadir_v1');
   } catch (e) { /* abaikan */ }
   els.loginScreen.classList.remove('hidden');
   els.appHeader.classList.add('hidden');
@@ -779,6 +778,54 @@ els.btnSpinPeserta.addEventListener('click', () => {
   spinWheel();
 });
 
+/* ---------- BATALKAN (UNDO) SPIN TERAKHIR — koreksi operator ----------
+   Salah tekan / salah orang sering terjadi di lapangan. Batalkan hasil spin
+   TERAKHIR di area ini: nama kembali ke dropdown, stok hadiah dikembalikan,
+   entri riwayat dihapus. Tidak menyentuh area lain. */
+function undoLastSpin() {
+  const k = KOORDINATOR[state.user];
+  if (!k || !state.area || state.spinning) return;
+  const list = getSudahList(k.agen, state.area); // referensi langsung ke state.sudah
+  if (!list.length) {
+    els.resultPeserta.textContent = '⚠️ Belum ada spin di area ini untuk dibatalkan.';
+    els.resultPeserta.classList.remove('win', 'zonk');
+    return;
+  }
+  const last = list.pop();
+  // Kembalikan stok hadiah kalau hasilnya hadiah (ZONK tidak mengurangi stok)
+  if (last.hadiah && last.hadiah !== 'ZONK') {
+    const p = (AGEN_QUOTA[k.agen] || []).find(x => x.name === last.hadiah);
+    if (p && typeof p.qty === 'number') p.qty += 1;
+  }
+  saveState();
+  state.activeWarga = null;
+  els.wargaActive.classList.add('hidden');
+  els.wargaSelect.value = '';
+  renderWargaPicker();
+  initWheel();
+  els.btnSpinPeserta.disabled = true; // wajib pilih warga lagi
+  els.resultPeserta.textContent = '↩️ Dibatalkan: ' + last.warga + ' (' + (last.hadiah === 'ZONK' ? 'ZONK' : last.hadiah) + ') — nama muncul lagi di daftar.';
+  els.resultPeserta.classList.remove('win', 'zonk');
+}
+if (els.btnUndoSpin) els.btnUndoSpin.addEventListener('click', undoLastSpin);
+
+/* ---------- RESET PENUH DATA UNDIAN (terkunci konfirmasi) ----------
+   Dipisah dari tombol Keluar supaya logout tidak menghapus riwayat/stok.
+   Setara dengan membuka URL ?reset=1. */
+function resetAllData() {
+  if (state.spinning) return;
+  const ok = window.confirm('♻️ Reset SEMUA data undian di perangkat ini?\n\n• Riwayat pemenang terhapus\n• Stok hadiah kembali penuh\n• Riwayat sepeda listrik terhapus\n• Tanda tidak hadir terhapus\n\nTidak bisa dibatalkan. Lanjutkan?');
+  if (!ok) return;
+  try {
+    localStorage.removeItem('undian_sudah_v1');
+    localStorage.removeItem('undian_qty_v1');
+    localStorage.removeItem('undian_grand_v1');
+    localStorage.removeItem('undian_tidak_hadir_v1');
+  } catch (e) { /* abaikan */ }
+  window.location.replace(window.location.pathname);
+}
+if (els.btnResetData) els.btnResetData.addEventListener('click', resetAllData);
+
 /* ---------- HELPERS ---------- */
 function showPanel(name) {
   els.panelArea.classList.toggle('hidden', name !== 'area');
@@ -1018,6 +1065,31 @@ els.btnBackGrand.addEventListener('click', () => {
   state.grandMode = false;
   renderAreaPicker();
 });
+
+/* ---------- BATALKAN (UNDO) PEMENANG SEPEDA LISTRIK TERAKHIR ----------
+   Salah klik saat panggung = sepeda listrik jatuh ke orang yang salah.
+   Batalkan pemenang terakhir: stok sepeda kembali, nama ikut undian lagi. */
+function undoLastGrand() {
+  if (state.spinning) return;
+  if (!state.grandSudah.length) {
+    els.resultGrand.textContent = '⚠️ Belum ada pemenang sepeda listrik untuk dibatalkan.';
+    els.resultGrand.classList.remove('win', 'zonk');
+    return;
+  }
+  const last = state.grandSudah.pop();
+  const gp = GRAND_PRIZE.find(p => p.name === 'Sepeda Listrik');
+  if (gp) gp.qty = Math.min(1, gp.qty + 1);
+  saveState();
+  renderGrandResults();
+  if (els.grandLiveName) {
+    els.grandLiveName.textContent = '— Tekan PUTAR —';
+    els.grandLiveName.classList.remove('winner');
+  }
+  initGrandWheel(); // roda dibangun ulang tanpa pemenang → tombol PUTAR aktif lagi
+  els.resultGrand.textContent = '↩️ Dibatalkan: ' + last.warga + ' (' + (last.area || last.agen) + ') — ikut undian lagi.';
+  els.resultGrand.classList.remove('win', 'zonk');
+}
+if (els.btnUndoGrand) els.btnUndoGrand.addEventListener('click', undoLastGrand);
 
 /* ============================================================
    VERIFIKASI ZONK — KHUSUS OWNER (IRVAN)
