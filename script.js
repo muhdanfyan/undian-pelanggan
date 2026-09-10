@@ -519,6 +519,42 @@ els.btnTidakHadir.addEventListener('click', () => {
 let wheel = null;
 let wheelCbId = null;
 
+/* ---------- PENGAMAN: animasi roda MACET ----------
+   Kalau animasi gagal jalan / callbackFinished tidak pernah dipanggil, tombol
+   spin terkunci sampai halaman di-refresh. Watchdog ini memulihkan UI
+   (tombol aktif lagi, tick berhenti) TANPA mencatat hasil palsu. */
+let spinWatchdog = null;
+function clearSpinWatchdog() {
+  if (spinWatchdog) { clearTimeout(spinWatchdog); spinWatchdog = null; }
+}
+function armSpinWatchdog(ms, wheelObj, isGrand) {
+  clearSpinWatchdog();
+  spinWatchdog = setTimeout(() => {
+    spinWatchdog = null;
+    if (!state.spinning) return; // normal — callback sudah jalan
+    state.spinning = false;
+    stopTicking();
+    try { if (wheelObj) wheelObj.stopAnimation(false); } catch (e) { /* abaikan */ }
+    const wrapP = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
+    if (wrapP) wrapP.classList.remove('spinning');
+    const wrapG = els.canvasGrand ? els.canvasGrand.parentElement : null;
+    if (wrapG) wrapG.classList.remove('spinning');
+    if (isGrand) {
+      els.btnSpinGrand.disabled = false;
+      els.resultGrand.textContent = '⚠️ Animasi roda macet — tombol PUTAR sudah aktif lagi, silakan putar ulang.';
+      els.resultGrand.classList.remove('win', 'zonk');
+    } else {
+      els.btnSpinPeserta.disabled = !state.activeWarga;
+      els.resultPeserta.textContent = '⚠️ Animasi roda macet — silakan putar ulang (hasil tidak dicatat).';
+      els.resultPeserta.classList.remove('win', 'zonk');
+    }
+  }, ms);
+}
+/* Bersihkan callback lama supaya tidak menumpuk di window (leak kecil) */
+function dropOldCallback(id) {
+  if (id) { try { delete window[id]; } catch (e) { /* abaikan */ } }
+}
+
 /* ZONK di roda biasa: segmen abu-abu slate selang-seling (50:50 dengan hadiah) */
 const ZONK_SEGMENTS = 8;
 const ZONK_COLORS = ['#cbd5e1', '#94a3b8']; // abu-abu slate — ZONK tetap abu-abu sesuai arahan Bang
@@ -638,9 +674,11 @@ function initWheel(opts = {}) {
     }
   }
 
+  dropOldCallback(wheelCbId);
   wheelCbId = 'wheelCb' + Date.now();
   window[wheelCbId] = function () {
     stopTicking();
+    clearSpinWatchdog(); // animasi selesai normal — matikan pengaman
     const wrap = els.canvasPeserta ? els.canvasPeserta.parentElement : null;
     if (wrap) wrap.classList.remove('spinning');
     const seg = wheel.getIndicatedSegment();
@@ -768,6 +806,7 @@ function spinWheel() {
   // fade selesai ±7.1s) → suara mati total & terfade SEBELUM roda berhenti.
   tickStopTimer = setTimeout(() => { tickStopTimer = null; stopTicking(); }, 5800);
   wheel.startAnimation();
+  armSpinWatchdog(12000, wheel, false); // pengaman kalau animasi roda biasa macet
 }
 
 els.btnSpinPeserta.addEventListener('click', () => {
@@ -945,9 +984,11 @@ function initGrandWheel(opts = {}) {
     return;
   }
   els.btnSpinGrand.disabled = false;
+  dropOldCallback(grandCbId);
   grandCbId = 'grandCb' + Date.now();
   window[grandCbId] = function () {
     stopTicking();
+    clearSpinWatchdog(); // animasi selesai normal — matikan pengaman
     const gwrap = els.canvasGrand ? els.canvasGrand.parentElement : null;
     if (gwrap) gwrap.classList.remove('spinning');
     const seg = grandWheel.getIndicatedSegment();
@@ -1027,6 +1068,7 @@ function spinGrandWheel() {
   }
   startGrandLive();
   grandWheel.startAnimation();
+  armSpinWatchdog(11000, grandWheel, true); // pengaman kalau animasi roda grand macet
 }
 
 els.btnSpinGrand.addEventListener('click', () => {
