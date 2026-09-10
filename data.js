@@ -140,7 +140,7 @@ const DATA_PESERTA = {
       "KARIM",
       "BAIM",
       "HASRAN",
-      "DEILA",
+      "DILA",
       "TITIN",
       "IBU IKA",
       "MARLINA",
